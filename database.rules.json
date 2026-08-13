@@ -1,0 +1,125 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "usernames": {
+      ".read": "auth != null",
+      "$name": {
+        ".write": "auth != null && !data.exists() && newData.val() === auth.uid"
+      }
+    },
+
+    "userServers": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "servers": {
+      ".read": "auth != null",
+      "$serverId": {
+        ".write": "auth != null && (!data.exists() ? newData.child('ownerId').val() === auth.uid : data.child('ownerId').val() === auth.uid)",
+        "members": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        }
+      }
+    },
+
+    "serverChannels": {
+      ".read": "auth != null",
+      "$serverId": {
+        ".write": "auth != null && (!root.child('servers').child($serverId).exists() || root.child('servers').child($serverId).child('ownerId').val() === auth.uid)"
+      }
+    },
+
+    "serverInvites": {
+      ".read": "auth != null",
+      "$code": {
+        ".write": "auth != null"
+      }
+    },
+
+    "channelMessages": {
+      "$channelId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".indexOn": "createdAt",
+        "$messageId": {
+          ".validate": "newData.child('senderId').val() === auth.uid && newData.child('createdAt').isNumber()"
+        }
+      }
+    },
+
+    "friends": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$friendUid": {
+          ".write": "auth != null && (auth.uid === $uid || auth.uid === $friendUid)"
+        }
+      }
+    },
+
+    "friendRequests": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "incoming": {
+          "$fromUid": {
+            ".write": "auth != null && (auth.uid === $fromUid || auth.uid === $uid)"
+          }
+        },
+        "outgoing": {
+          "$toUid": {
+            ".write": "auth != null && (auth.uid === $toUid || auth.uid === $uid)"
+          }
+        }
+      }
+    },
+
+    "userDms": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$otherUid": {
+          ".write": "auth != null && (auth.uid === $uid || auth.uid === $otherUid)"
+        }
+      }
+    },
+
+    "dmMessages": {
+      "$dmId": {
+        ".read": "auth != null && $dmId.contains(auth.uid)",
+        ".write": "auth != null && $dmId.contains(auth.uid)",
+        ".indexOn": "createdAt",
+        "$messageId": {
+          ".validate": "newData.child('senderId').val() === auth.uid && newData.child('createdAt').isNumber()"
+        }
+      }
+    },
+
+    "voicePresence": {
+      "$channelId": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+
+    "status": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

@@ -1,26 +1,61 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-cream: #f5f5dc;
+  --color-yellow: #fbc02d;
+  --color-amber: #ff8f00;
+  --color-red: #c62828;
+
+  --background: var(--color-cream);
+  --surface: #ffffff;
+  --surface-2: #ece9d4;
+  --border: #ddd8bd;
+  --foreground: #2b2712;
+  --muted: #6f6a52;
+  --accent: var(--color-amber);
+  --accent-foreground: #ffffff;
+  --danger: var(--color-red);
+}
+
+.dark {
+  --background: #17140e;
+  --surface: #201c14;
+  --surface-2: #2a2519;
+  --border: #3a3323;
+  --foreground: var(--color-cream);
+  --muted: #b8b190;
+  --accent: var(--color-yellow);
+  --accent-foreground: #1a1608;
+  --danger: #ef5350;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-danger: var(--danger);
+  --color-brand-cream: var(--color-cream);
+  --color-brand-yellow: var(--color-yellow);
+  --color-brand-amber: var(--color-amber);
+  --color-brand-red: var(--color-red);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+* {
+  scrollbar-color: var(--border) transparent;
+}
+

@@ -1,5 +1,5 @@
 {
-  "name": "allchat-tmp",
+  "name": "allchat",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "animejs": "^4.5.0",
+    "firebase": "^12.17.1",
+    "lucide-react": "^1.31.0",
+    "motion": "^13.1.0",
+    "nanoid": "^6.0.1",
     "next": "16.3.0",
+    "peerjs": "^1.5.5",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
