@@ -11,11 +11,13 @@ import { Avatar } from "@/components/ui/Avatar";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { CreateServerModal } from "@/components/servers/CreateServerModal";
 import { JoinServerModal } from "@/components/servers/JoinServerModal";
+import { useMobileUI } from "@/lib/mobile-ui-context";
 
 export function ServerRail() {
   const { user, profile, logout } = useAuth();
   const servers = useUserServers(user?.uid);
   const pathname = usePathname();
+  const { openUserSettings } = useMobileUI();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -51,7 +53,16 @@ export function ServerRail() {
               }`}
               title={server.name}
             >
-              {server.name.slice(0, 2).toUpperCase()}
+              {server.iconUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={server.iconUrl}
+                  alt={server.name}
+                  className="h-full w-full rounded-[inherit] object-cover"
+                />
+              ) : (
+                server.name.slice(0, 2).toUpperCase()
+              )}
             </Link>
           </motion.div>
         ))}
@@ -99,7 +110,15 @@ export function ServerRail() {
         <LogOut size={18} />
       </button>
 
-      {profile && <Avatar name={profile.username} size={36} />}
+      {profile && (
+        <button
+          onClick={openUserSettings}
+          className="cursor-pointer rounded-full"
+          title="Kullanıcı ayarları"
+        >
+          <Avatar name={profile.username} src={profile.avatarUrl} size={36} />
+        </button>
+      )}
 
       <CreateServerModal open={showCreate} onClose={() => setShowCreate(false)} />
       <JoinServerModal open={showJoin} onClose={() => setShowJoin(false)} />

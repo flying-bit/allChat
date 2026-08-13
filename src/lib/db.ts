@@ -37,6 +37,7 @@ import type {
   UserProfile,
   ServerData,
   ChannelData,
+  CategoryData,
   MessageData,
   DmThreadMeta,
   FriendRequestData,
@@ -164,6 +165,31 @@ export function listenStatus(uid: string, cb: (s: StatusInfo | null) => void) {
   return () => off(r, "value", handler);
 }
 
+export async function updateUsername(uid: string, oldUsernameLower: string, newUsername: string) {
+  const trimmed = newUsername.trim();
+  const newLower = usernameLower(trimmed);
+  if (newLower === oldUsernameLower) return;
+  const available = await isUsernameAvailable(trimmed);
+  if (!available) throw new Error("Bu kullanıcı adı zaten alınmış.");
+  const updates: Record<string, unknown> = {
+    [`usernames/${oldUsernameLower}`]: null,
+    [`usernames/${newLower}`]: uid,
+    [`users/${uid}/username`]: trimmed,
+    [`users/${uid}/usernameLower`]: newLower,
+  };
+  await update(ref(rtdb), updates);
+}
+
+export async function updateUserAvatar(uid: string, file: File) {
+  const ext = file.type.split("/")[1] || "png";
+  const path = `avatars/${uid}/${Date.now()}.${ext}`;
+  const sRef = storageRef(storage, path);
+  await uploadBytes(sRef, file, { contentType: file.type });
+  const url = await getDownloadURL(sRef);
+  await update(ref(rtdb, `users/${uid}`), { avatarUrl: url });
+  return url;
+}
+
 // ---------- Servers ----------
 
 export function listenUserServerIds(uid: string, cb: (ids: string[]) => void) {
@@ -181,6 +207,29 @@ export function listenServer(serverId: string, cb: (s: ServerData | null) => voi
     cb(snap.exists() ? ({ id: serverId, ...snap.val() } as ServerData) : null)
   );
   return () => off(r, "value", handler);
+}
+
+export function listenServerMemberIds(serverId: string, cb: (uids: string[]) => void) {
+  const r = ref(rtdb, `servers/${serverId}/members`);
+  const handler = onValue(r, (snap) => {
+    const val = snap.val() as Record<string, boolean> | null;
+    cb(val ? Object.keys(val) : []);
+  });
+  return () => off(r, "value", handler);
+}
+
+export async function updateServerName(serverId: string, name: string) {
+  await update(ref(rtdb, `servers/${serverId}`), { name: name.trim() });
+}
+
+export async function updateServerIcon(serverId: string, file: File) {
+  const ext = file.type.split("/")[1] || "png";
+  const path = `serverIcons/${serverId}/${Date.now()}.${ext}`;
+  const sRef = storageRef(storage, path);
+  await uploadBytes(sRef, file, { contentType: file.type });
+  const url = await getDownloadURL(sRef);
+  await update(ref(rtdb, `servers/${serverId}`), { iconUrl: url });
+  return url;
 }
 
 export function listenServerChannels(serverId: string, cb: (channels: ChannelData[]) => void) {
@@ -267,15 +316,55 @@ export function listenChannelMeta(
   return () => off(r, "value", handler);
 }
 
-export async function createChannel(serverId: string, name: string, type: "text" | "voice", order: number) {
+export async function createChannel(
+  serverId: string,
+  name: string,
+  type: "text" | "voice",
+  order: number,
+  categoryId?: string
+) {
   const channelId = push(ref(rtdb, `serverChannels/${serverId}`)).key as string;
-  await set(ref(rtdb, `serverChannels/${serverId}/${channelId}`), {
+  await set(
+    ref(rtdb, `serverChannels/${serverId}/${channelId}`),
+    stripUndefined({
+      name,
+      type,
+      order,
+      createdAt: serverTimestamp(),
+      categoryId,
+    })
+  );
+  return channelId;
+}
+
+// ---------- Categories ----------
+
+export function listenServerCategories(serverId: string, cb: (categories: CategoryData[]) => void) {
+  const r = ref(rtdb, `serverCategories/${serverId}`);
+  const handler = onValue(r, (snap) => {
+    const list = toArray<CategoryData>(snap.val());
+    list.sort((a, b) => a.order - b.order);
+    cb(list);
+  });
+  return () => off(r, "value", handler);
+}
+
+export async function createCategory(serverId: string, name: string, order: number) {
+  const categoryId = push(ref(rtdb, `serverCategories/${serverId}`)).key as string;
+  await set(ref(rtdb, `serverCategories/${serverId}/${categoryId}`), {
     name,
-    type,
     order,
     createdAt: serverTimestamp(),
   });
-  return channelId;
+  return categoryId;
+}
+
+export async function renameCategory(serverId: string, categoryId: string, name: string) {
+  await update(ref(rtdb, `serverCategories/${serverId}/${categoryId}`), { name: name.trim() });
+}
+
+export async function deleteCategory(serverId: string, categoryId: string) {
+  await remove(ref(rtdb, `serverCategories/${serverId}/${categoryId}`));
 }
 
 // ---------- Channel messages ----------

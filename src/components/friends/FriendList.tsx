@@ -21,7 +21,7 @@ function FriendRow({ uid }: { uid: string }) {
   return (
     <div className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-surface-2">
       <div className="flex items-center gap-3">
-        <Avatar name={profile.username} size={36} online={status?.online} />
+        <Avatar name={profile.username} src={profile.avatarUrl} size={36} online={status?.online} />
         <div>
           <p className="text-sm font-medium">{profile.username}</p>
           <p className="text-xs text-muted">{status?.online ? "Çevrimiçi" : "Çevrimdışı"}</p>

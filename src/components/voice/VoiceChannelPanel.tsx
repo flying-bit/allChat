@@ -33,7 +33,7 @@ function ParticipantTile({
         transition={{ duration: 0.08 }}
         className="rounded-full"
       >
-        <Avatar name={name} size={64} />
+        <Avatar name={name} src={profile?.avatarUrl} size={64} />
       </motion.div>
       <span className="flex items-center gap-1 text-sm font-medium">
         {muted && <MicOff size={14} className="text-danger" />}

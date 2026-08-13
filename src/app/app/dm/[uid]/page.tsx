@@ -28,7 +28,10 @@ export default function DmPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <TopBar icon={<Avatar name={otherProfile.username} size={28} />} title={otherProfile.username} />
+      <TopBar
+        icon={<Avatar name={otherProfile.username} src={otherProfile.avatarUrl} size={28} />}
+        title={otherProfile.username}
+      />
       <MessageList messages={messages} currentUid={user.uid} />
       <MessageInput
         placeholder={`${otherProfile.username} kullanıcısına mesaj gönder`}

@@ -1,19 +1,37 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { ImagePlus } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth-context";
-import { createServer } from "@/lib/db";
+import { createServer, updateServerIcon } from "@/lib/db";
 
 export function CreateServerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth();
   const router = useRouter();
   const [name, setName] = useState("");
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIconFile(file);
+    setPreview(URL.createObjectURL(file));
+  }
+
+  function reset() {
+    setName("");
+    setIconFile(null);
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(null);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -22,7 +40,13 @@ export function CreateServerModal({ open, onClose }: { open: boolean; onClose: (
     setError(null);
     try {
       const { serverId, textChannelId } = await createServer(user.uid, name.trim());
-      setName("");
+      if (iconFile) {
+        // Fire-and-forget: the server itself is already created, so a slow
+        // or failing logo upload (eg. retries against a misconfigured
+        // Storage bucket) shouldn't delay navigation into the new server.
+        void updateServerIcon(serverId, iconFile).catch(() => {});
+      }
+      reset();
       onClose();
       router.push(`/app/servers/${serverId}/channels/${textChannelId}`);
     } catch {
@@ -35,14 +59,37 @@ export function CreateServerModal({ open, onClose }: { open: boolean; onClose: (
   return (
     <Modal open={open} onClose={onClose} title="Sunucu oluştur">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input
-          id="server-name"
-          label="Sunucu adı"
-          autoFocus
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="group relative flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-surface-2"
+            title="Logo seç (opsiyonel)"
+          >
+            {preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt="önizleme" className="h-full w-full object-cover" />
+            ) : (
+              <ImagePlus size={20} className="text-muted" />
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <Input
+            id="server-name"
+            label="Sunucu adı"
+            autoFocus
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="flex-1"
+          />
+        </div>
         {error && <p className="text-sm text-danger">{error}</p>}
         <Button type="submit" loading={submitting} className="w-full">
           Oluştur

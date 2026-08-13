@@ -13,7 +13,7 @@
     "usernames": {
       ".read": "auth != null",
       "$name": {
-        ".write": "auth != null && !data.exists() && newData.val() === auth.uid"
+        ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid && !newData.exists()))"
       }
     },
 
@@ -37,6 +37,13 @@
     },
 
     "serverChannels": {
+      ".read": "auth != null",
+      "$serverId": {
+        ".write": "auth != null && (!root.child('servers').child($serverId).exists() || root.child('servers').child($serverId).child('ownerId').val() === auth.uid)"
+      }
+    },
+
+    "serverCategories": {
       ".read": "auth != null",
       "$serverId": {
         ".write": "auth != null && (!root.child('servers').child($serverId).exists() || root.child('servers').child($serverId).child('ownerId').val() === auth.uid)"

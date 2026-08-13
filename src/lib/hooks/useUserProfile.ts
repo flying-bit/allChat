@@ -7,11 +7,8 @@ import type { UserProfile } from "@/types";
 export function useUserProfile(uid: string | undefined | null) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   useEffect(() => {
-    if (!uid) {
-      setProfile(null);
-      return;
-    }
+    if (!uid) return;
     return listenUserProfile(uid, setProfile);
   }, [uid]);
-  return profile;
+  return uid ? profile : null;
 }

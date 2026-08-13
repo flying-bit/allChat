@@ -4,6 +4,7 @@ export interface UserProfile {
   usernameLower: string;
   email: string;
   createdAt: number;
+  avatarUrl?: string;
 }
 
 export interface StatusInfo {
@@ -18,6 +19,7 @@ export interface ServerData {
   createdAt: number;
   defaultChannelId: string;
   inviteCode: string;
+  iconUrl?: string;
 }
 
 export type ChannelType = "text" | "voice";
@@ -26,6 +28,14 @@ export interface ChannelData {
   id: string;
   name: string;
   type: ChannelType;
+  order: number;
+  createdAt: number;
+  categoryId?: string;
+}
+
+export interface CategoryData {
+  id: string;
+  name: string;
   order: number;
   createdAt: number;
 }

@@ -27,7 +27,7 @@ export function MessageBubble({ message, isOwn }: { message: MessageData; isOwn:
 
   return (
     <div ref={ref} className="flex gap-3 px-4 py-1.5 hover:bg-surface-2/50">
-      <Avatar name={name} size={36} />
+      <Avatar name={name} src={profile?.avatarUrl} size={36} />
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
           <span className={`text-sm font-semibold ${isOwn ? "text-accent" : ""}`}>{name}</span>

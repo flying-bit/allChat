@@ -9,10 +9,7 @@ export function useUserServers(uid: string | undefined) {
   const [servers, setServers] = useState<Record<string, ServerData>>({});
 
   useEffect(() => {
-    if (!uid) {
-      setIds([]);
-      return;
-    }
+    if (!uid) return;
     return listenUserServerIds(uid, setIds);
   }, [uid]);
 
@@ -32,5 +29,6 @@ export function useUserServers(uid: string | undefined) {
     return () => unsubs.forEach((u) => u());
   }, [ids]);
 
+  if (!uid) return [];
   return ids.map((id) => servers[id]).filter((s): s is ServerData => Boolean(s));
 }
