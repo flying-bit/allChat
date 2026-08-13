@@ -16,12 +16,7 @@ import {
   limitToLast,
   type DatabaseReference,
 } from "firebase/database";
-import {
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-import { rtdb, storage } from "./firebase";
+import { rtdb, auth } from "./firebase";
 import {
   GENESIS_SERVER_ID,
   GENESIS_SERVER_NAME,
@@ -58,6 +53,27 @@ function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
 function toArray<T>(val: Record<string, unknown> | null): (T & { id: string })[] {
   if (!val) return [];
   return Object.entries(val).map(([id, v]) => ({ id, ...(v as object) } as T & { id: string }));
+}
+
+// ---------- Image uploads (proxied through /api/upload -> Cloudinary) ----------
+
+async function uploadImageToServer(folder: string, file: File): Promise<string> {
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) throw new Error("Not signed in");
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", folder);
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "Image upload failed");
+  }
+  const { url } = (await res.json()) as { url: string };
+  return url;
 }
 
 // ---------- Users ----------
@@ -181,11 +197,7 @@ export async function updateUsername(uid: string, oldUsernameLower: string, newU
 }
 
 export async function updateUserAvatar(uid: string, file: File) {
-  const ext = file.type.split("/")[1] || "png";
-  const path = `avatars/${uid}/${Date.now()}.${ext}`;
-  const sRef = storageRef(storage, path);
-  await uploadBytes(sRef, file, { contentType: file.type });
-  const url = await getDownloadURL(sRef);
+  const url = await uploadImageToServer(`avatars/${uid}`, file);
   await update(ref(rtdb, `users/${uid}`), { avatarUrl: url });
   return url;
 }
@@ -223,11 +235,7 @@ export async function updateServerName(serverId: string, name: string) {
 }
 
 export async function updateServerIcon(serverId: string, file: File) {
-  const ext = file.type.split("/")[1] || "png";
-  const path = `serverIcons/${serverId}/${Date.now()}.${ext}`;
-  const sRef = storageRef(storage, path);
-  await uploadBytes(sRef, file, { contentType: file.type });
-  const url = await getDownloadURL(sRef);
+  const url = await uploadImageToServer(`serverIcons/${serverId}`, file);
   await update(ref(rtdb, `servers/${serverId}`), { iconUrl: url });
   return url;
 }
@@ -395,11 +403,7 @@ export async function sendChannelMessage(
 // ---------- Images ----------
 
 export async function uploadPastedImage(threadId: string, file: File) {
-  const ext = file.type.split("/")[1] || "png";
-  const path = `chatImages/${threadId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const sRef = storageRef(storage, path);
-  await uploadBytes(sRef, file, { contentType: file.type });
-  return getDownloadURL(sRef);
+  return uploadImageToServer(`chatImages/${threadId}`, file);
 }
 
 // ---------- DMs ----------
