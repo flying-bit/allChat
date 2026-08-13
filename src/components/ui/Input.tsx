@@ -13,16 +13,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref
 ) {
   return (
-    <label className="flex flex-col gap-1 text-sm" htmlFor={id}>
+    <label className={clsx("flex min-w-0 flex-col gap-1 text-sm", className)} htmlFor={id}>
       {label && <span className="font-medium text-muted">{label}</span>}
       <input
         ref={ref}
         id={id}
-        className={clsx(
-          "rounded-lg border border-border bg-surface px-3 py-2 text-foreground outline-none transition-colors",
-          "focus:border-accent focus:ring-2 focus:ring-accent/30",
-          className
-        )}
+        className="w-full min-w-0 rounded-lg border border-border bg-surface px-3 py-2 text-foreground outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/30"
         {...props}
       />
       {error && <span className="text-xs text-danger">{error}</span>}
