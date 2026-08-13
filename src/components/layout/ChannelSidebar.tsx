@@ -75,7 +75,7 @@ function AddChannelForm({
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="kanal-adı"
+        placeholder="channel-name"
         className="rounded border border-border bg-background px-2 py-1 text-sm outline-none focus:border-accent"
       />
       <div className="flex gap-1 text-xs">
@@ -86,7 +86,7 @@ function AddChannelForm({
             type === "text" ? "bg-accent text-accent-foreground" : "bg-surface-2"
           }`}
         >
-          Metin
+          Text
         </button>
         <button
           type="button"
@@ -95,7 +95,7 @@ function AddChannelForm({
             type === "voice" ? "bg-accent text-accent-foreground" : "bg-surface-2"
           }`}
         >
-          Ses
+          Voice
         </button>
       </div>
       <div className="flex gap-1">
@@ -103,14 +103,14 @@ function AddChannelForm({
           type="submit"
           className="flex-1 cursor-pointer rounded bg-accent px-2 py-1 text-xs font-medium text-accent-foreground"
         >
-          Ekle
+          Add
         </button>
         <button
           type="button"
           onClick={onCancel}
           className="cursor-pointer rounded px-2 py-1 text-xs text-muted hover:bg-surface-2"
         >
-          İptal
+          Cancel
         </button>
       </div>
     </form>
@@ -196,7 +196,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
               <button
                 onClick={() => setShowSettings(true)}
                 className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-accent cursor-pointer"
-                title="Sunucu ayarları"
+                title="Server settings"
               >
                 <Settings size={18} />
               </button>
@@ -204,13 +204,13 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
             <button
               onClick={() => setShowInvite(true)}
               className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-accent cursor-pointer"
-              title="Davet et"
+              title="Invite people"
             >
               <UserPlus size={18} />
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {uncategorized.map((c) => (
             <ChannelLink
               key={c.id}
@@ -231,7 +231,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
                 onClick={() => setAddingChannelFor("uncategorized")}
                 className="mt-1 mb-2 flex w-full cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-foreground"
               >
-                <Plus size={14} /> Kanal ekle
+                <Plus size={14} /> Add channel
               </button>
             ))}
 
@@ -251,7 +251,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
                     <button
                       onClick={() => setAddingChannelFor(category.id)}
                       className="cursor-pointer rounded p-0.5 text-muted hover:text-accent"
-                      title="Bu kategoriye kanal ekle"
+                      title="Add a channel to this category"
                     >
                       <Plus size={14} />
                     </button>
@@ -289,7 +289,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
                   autoFocus
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="KATEGORİ ADI"
+                  placeholder="CATEGORY NAME"
                   className="rounded border border-border bg-background px-2 py-1 text-sm outline-none focus:border-accent"
                 />
                 <div className="flex gap-1">
@@ -297,14 +297,14 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
                     type="submit"
                     className="flex-1 cursor-pointer rounded bg-accent px-2 py-1 text-xs font-medium text-accent-foreground"
                   >
-                    Ekle
+                    Add
                   </button>
                   <button
                     type="button"
                     onClick={() => setAddingCategory(false)}
                     className="cursor-pointer rounded px-2 py-1 text-xs text-muted hover:bg-surface-2"
                   >
-                    İptal
+                    Cancel
                   </button>
                 </div>
               </form>
@@ -313,7 +313,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
                 onClick={() => setAddingCategory(true)}
                 className="mt-2 flex w-full cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-foreground"
               >
-                <Plus size={14} /> Kategori ekle
+                <Plus size={14} /> Add category
               </button>
             ))}
         </div>

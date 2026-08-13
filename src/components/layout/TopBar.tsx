@@ -23,7 +23,7 @@ export function TopBar({
         <button
           onClick={toggleChannelDrawer}
           className="-ml-1 rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-foreground cursor-pointer md:hidden"
-          aria-label="Kanal listesini aç"
+          aria-label="Open channel list"
         >
           <Menu size={20} />
         </button>

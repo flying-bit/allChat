@@ -21,19 +21,19 @@ export function AddFriend() {
     try {
       const trimmed = username.trim();
       if (trimmed.toLowerCase() === profile.usernameLower) {
-        setStatus("Kendine arkadaşlık isteği gönderemezsin.");
+        setStatus("You can't send a friend request to yourself.");
         return;
       }
       const targetUid = await findUidByUsername(trimmed);
       if (!targetUid) {
-        setStatus("Bu kullanıcı adında biri bulunamadı.");
+        setStatus("No one with that username was found.");
         return;
       }
       await sendFriendRequest(user.uid, profile.username, targetUid);
-      setStatus("İstek gönderildi!");
+      setStatus("Request sent!");
       setUsername("");
     } catch {
-      setStatus("Bir hata oluştu, tekrar dene.");
+      setStatus("Something went wrong, try again.");
     } finally {
       setSubmitting(false);
     }
@@ -41,17 +41,17 @@ export function AddFriend() {
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
-      <h3 className="mb-2 font-semibold">Arkadaş Ekle</h3>
+      <h3 className="mb-2 font-semibold">Add Friend</h3>
       <form onSubmit={handleSubmit} className="flex items-end gap-2">
         <Input
-          label="Kullanıcı adı"
+          label="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="kullaniciadi"
+          placeholder="username"
           className="flex-1"
         />
         <Button type="submit" loading={submitting}>
-          <UserPlus size={16} /> Gönder
+          <UserPlus size={16} /> Send
         </Button>
       </form>
       {status && <p className="mt-2 text-sm text-muted">{status}</p>}

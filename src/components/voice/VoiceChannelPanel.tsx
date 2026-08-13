@@ -145,14 +145,14 @@ export function VoiceChannelPanel({ channelId }: { channelId: string }) {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      alert("Mikrofona erişilemedi. Tarayıcı izinlerini kontrol et.");
+      alert("Couldn't access the microphone. Check your browser permissions.");
       return;
     }
     let peer: Peer;
     try {
       peer = await createPeer();
     } catch {
-      alert("Ses sunucusuna bağlanılamadı, tekrar dene.");
+      alert("Couldn't connect to the voice server, try again.");
       stream.getTracks().forEach((t) => t.stop());
       return;
     }
@@ -184,15 +184,15 @@ export function VoiceChannelPanel({ channelId }: { channelId: string }) {
   const meMember = members.find((m) => m.uid === user?.uid);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-8">
       {!joined ? (
         <div className="flex flex-col items-center gap-3">
           <Volume2 size={40} className="text-muted" />
           <p className="text-sm text-muted">
-            {members.length}/{MAX_VC_USERS} kişi kanalda
+            {members.length}/{MAX_VC_USERS} in this channel
           </p>
-          {full && <p className="text-sm text-danger">Kanal dolu (4/4).</p>}
-          <Button onClick={handleJoin}>Sesli Kanala Katıl</Button>
+          {full && <p className="text-sm text-danger">Channel is full (4/4).</p>}
+          <Button onClick={handleJoin}>Join Voice Channel</Button>
         </div>
       ) : (
         <>
@@ -211,10 +211,10 @@ export function VoiceChannelPanel({ channelId }: { channelId: string }) {
           <div className="flex gap-3">
             <Button variant={muted ? "danger" : "outline"} onClick={toggleMute}>
               {muted ? <MicOff size={18} /> : <Mic size={18} />}
-              {muted ? "Sesi Aç" : "Sustur"}
+              {muted ? "Unmute" : "Mute"}
             </Button>
             <Button variant="danger" onClick={handleLeave}>
-              <PhoneOff size={18} /> Ayrıl
+              <PhoneOff size={18} /> Leave
             </Button>
           </div>
         </>

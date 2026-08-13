@@ -22,7 +22,7 @@ export function MessageBubble({ message, isOwn }: { message: MessageData; isOwn:
 
   const name = profile?.username ?? "...";
   const time = message.createdAt
-    ? new Date(message.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
+    ? new Date(message.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
     : "";
 
   return (
@@ -38,7 +38,7 @@ export function MessageBubble({ message, isOwn }: { message: MessageData; isOwn:
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={message.imageUrl}
-            alt="gönderilen görsel"
+            alt="attachment"
             className="mt-1 max-h-80 max-w-sm rounded-lg border border-border object-contain"
           />
         )}

@@ -49,9 +49,9 @@ export function InvitePanel({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Sunucuya davet et">
+    <Modal open={open} onClose={onClose} title="Invite people">
       <p className="mb-3 text-sm text-muted">
-        Bu kodu paylaşarak arkadaşlarını davet edebilirsin.
+        Share this code so your friends can join the server.
       </p>
       <div
         ref={badgeRef}
@@ -61,12 +61,12 @@ export function InvitePanel({
         <button
           onClick={handleCopy}
           className="rounded-md p-2 text-muted hover:bg-surface hover:text-accent cursor-pointer"
-          title="Kopyala"
+          title="Copy"
         >
           <Copy size={18} />
         </button>
       </div>
-      {copied && <p className="mt-2 text-xs text-accent">Kopyalandı!</p>}
+      {copied && <p className="mt-2 text-xs text-accent">Copied!</p>}
       {isOwner && (
         <Button
           variant="outline"
@@ -74,7 +74,7 @@ export function InvitePanel({
           onClick={handleRegenerate}
           loading={regenerating}
         >
-          <RefreshCw size={16} /> Kodu yenile
+          <RefreshCw size={16} /> Regenerate code
         </Button>
       )}
     </Modal>

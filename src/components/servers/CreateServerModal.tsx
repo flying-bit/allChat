@@ -50,25 +50,25 @@ export function CreateServerModal({ open, onClose }: { open: boolean; onClose: (
       onClose();
       router.push(`/app/servers/${serverId}/channels/${textChannelId}`);
     } catch {
-      setError("Sunucu oluşturulamadı, tekrar dene.");
+      setError("Couldn't create the server, try again.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Sunucu oluştur">
+    <Modal open={open} onClose={onClose} title="Create a server">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="group relative flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-surface-2"
-            title="Logo seç (opsiyonel)"
+            title="Choose a logo (optional)"
           >
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="önizleme" className="h-full w-full object-cover" />
+              <img src={preview} alt="preview" className="h-full w-full object-cover" />
             ) : (
               <ImagePlus size={20} className="text-muted" />
             )}
@@ -82,7 +82,7 @@ export function CreateServerModal({ open, onClose }: { open: boolean; onClose: (
           />
           <Input
             id="server-name"
-            label="Sunucu adı"
+            label="Server name"
             autoFocus
             required
             value={name}
@@ -92,7 +92,7 @@ export function CreateServerModal({ open, onClose }: { open: boolean; onClose: (
         </div>
         {error && <p className="text-sm text-danger">{error}</p>}
         <Button type="submit" loading={submitting} className="w-full">
-          Oluştur
+          Create
         </Button>
       </form>
     </Modal>

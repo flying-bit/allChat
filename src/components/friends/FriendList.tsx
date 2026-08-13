@@ -24,21 +24,21 @@ function FriendRow({ uid }: { uid: string }) {
         <Avatar name={profile.username} src={profile.avatarUrl} size={36} online={status?.online} />
         <div>
           <p className="text-sm font-medium">{profile.username}</p>
-          <p className="text-xs text-muted">{status?.online ? "Çevrimiçi" : "Çevrimdışı"}</p>
+          <p className="text-xs text-muted">{status?.online ? "Online" : "Offline"}</p>
         </div>
       </div>
       <div className="flex gap-1">
         <Link
           href={`/app/dm/${uid}`}
           className="rounded-md p-2 text-muted hover:bg-surface hover:text-accent cursor-pointer"
-          title="Mesaj gönder"
+          title="Send a message"
         >
           <MessageCircle size={18} />
         </Link>
         <button
           onClick={() => user && removeFriend(user.uid, uid)}
           className="rounded-md p-2 text-muted hover:bg-surface hover:text-danger cursor-pointer"
-          title="Arkadaşlıktan çıkar"
+          title="Remove friend"
         >
           <UserMinus size={18} />
         </button>
@@ -58,9 +58,9 @@ export function FriendList() {
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
-      <h3 className="mb-2 font-semibold">Arkadaşlar ({friendUids.length})</h3>
+      <h3 className="mb-2 font-semibold">Friends ({friendUids.length})</h3>
       {friendUids.length === 0 ? (
-        <p className="text-sm text-muted">Henüz arkadaşın yok. Yukarıdan birini ekle!</p>
+        <p className="text-sm text-muted">No friends yet. Add someone above!</p>
       ) : (
         <div className="flex flex-col gap-1">
           {friendUids.map((uid) => (

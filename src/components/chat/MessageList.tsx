@@ -18,10 +18,10 @@ export function MessageList({
   }, [messages.length]);
 
   return (
-    <div className="flex-1 overflow-y-auto py-2">
+    <div className="min-h-0 flex-1 overflow-y-auto py-2">
       {messages.length === 0 && (
         <p className="px-4 py-8 text-center text-sm text-muted">
-          Henüz mesaj yok. İlk mesajı sen gönder!
+          No messages yet. Send the first one!
         </p>
       )}
       {messages.map((m) => (

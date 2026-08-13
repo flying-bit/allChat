@@ -54,7 +54,7 @@ export function MessageInput({
       }
       inputRef.current?.focus();
     } catch {
-      setError("Mesaj gönderilemedi. Firebase kurallarının uygulandığından emin ol.");
+      setError("Couldn't send the message. Make sure the Firebase rules are applied.");
     } finally {
       setSending(false);
     }
@@ -74,7 +74,7 @@ export function MessageInput({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={pendingImage.previewUrl}
-            alt="önizleme"
+            alt="preview"
             className="h-16 w-16 rounded object-cover"
           />
           <button
@@ -112,7 +112,7 @@ export function MessageInput({
       {error ? (
         <p className="mt-1 text-[11px] text-danger">{error}</p>
       ) : (
-        <p className="mt-1 text-[11px] text-muted">Resim yapıştırmak için Ctrl+V kullanabilirsin.</p>
+        <p className="mt-1 text-[11px] text-muted">You can paste an image with Ctrl+V.</p>
       )}
     </div>
   );

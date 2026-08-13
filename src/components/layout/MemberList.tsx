@@ -53,13 +53,13 @@ export function MemberList({ serverId }: { serverId: string }) {
         <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={closeMemberList} />
       )}
       <div
-        className={`fixed inset-y-0 right-0 z-40 w-60 overflow-y-auto border-l border-border bg-surface p-2 transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:flex lg:shrink-0 lg:flex-col ${
+        className={`fixed inset-y-0 right-0 z-40 min-h-0 w-60 overflow-y-auto border-l border-border bg-surface p-2 transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:flex lg:shrink-0 lg:flex-col ${
           memberListOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {online.length > 0 && (
           <div className="mb-1 px-2 pt-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Çevrimiçi — {online.length}
+            Online — {online.length}
           </div>
         )}
         {online.map((uid) => (
@@ -67,7 +67,7 @@ export function MemberList({ serverId }: { serverId: string }) {
         ))}
         {offline.length > 0 && (
           <div className="mb-1 mt-3 px-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Çevrimdışı — {offline.length}
+            Offline — {offline.length}
           </div>
         )}
         {offline.map((uid) => (

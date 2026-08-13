@@ -23,7 +23,7 @@ export function JoinServerModal({ open, onClose }: { open: boolean; onClose: () 
     try {
       const result = await joinServerByInviteCode(user.uid, code.trim());
       if (!result.ok) {
-        setError("Geçersiz davet kodu.");
+        setError("That invite code isn't valid.");
         return;
       }
       const unsub = listenServerChannels(result.serverId, (channels) => {
@@ -34,27 +34,27 @@ export function JoinServerModal({ open, onClose }: { open: boolean; onClose: () 
         if (first) router.push(`/app/servers/${result.serverId}/channels/${first.id}`);
       });
     } catch {
-      setError("Katılırken bir hata oluştu.");
+      setError("Something went wrong while joining.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Davetle katıl">
+    <Modal open={open} onClose={onClose} title="Join with an invite">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
           id="invite-code"
-          label="Davet kodu"
+          label="Invite code"
           autoFocus
           required
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="ör. 7K3PQ9XZ"
+          placeholder="e.g. 7K3PQ9XZ"
         />
         {error && <p className="text-sm text-danger">{error}</p>}
         <Button type="submit" loading={submitting} className="w-full">
-          Katıl
+          Join
         </Button>
       </form>
     </Modal>

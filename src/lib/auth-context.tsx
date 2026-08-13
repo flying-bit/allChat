@@ -70,14 +70,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function register(email: string, password: string, username: string) {
     const trimmed = username.trim();
     if (trimmed.length < 3) {
-      throw new Error("Kullanıcı adı en az 3 karakter olmalı.");
+      throw new Error("Username must be at least 3 characters long.");
     }
     if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
-      throw new Error("Kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir.");
+      throw new Error("Username can only contain letters, numbers, and underscores.");
     }
     const available = await isUsernameAvailable(trimmed);
     if (!available) {
-      throw new Error("Bu kullanıcı adı zaten alınmış.");
+      throw new Error("That username is already taken.");
     }
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await createUserProfile(cred.user.uid, trimmed, email);

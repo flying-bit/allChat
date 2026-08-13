@@ -34,14 +34,14 @@ export function ServerRail() {
             ? "rounded-xl bg-accent text-accent-foreground"
             : "bg-surface text-foreground hover:rounded-xl hover:bg-accent hover:text-accent-foreground"
         }`}
-        title="Arkadaşlar ve DM'ler"
+        title="Friends & DMs"
       >
         <Users size={22} />
       </Link>
 
       <div className="my-1 h-px w-8 bg-border" />
 
-      <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto">
+      <div className="min-h-0 flex flex-1 flex-col items-center gap-2 overflow-y-auto">
         {servers.map((server) => (
           <motion.div key={server.id} layout>
             <Link
@@ -72,7 +72,7 @@ export function ServerRail() {
         <button
           onClick={() => setShowAddMenu((v) => !v)}
           className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface text-accent hover:rounded-xl hover:bg-accent hover:text-accent-foreground cursor-pointer"
-          title="Sunucu ekle"
+          title="Add a server"
         >
           <Plus size={22} />
         </button>
@@ -85,7 +85,7 @@ export function ServerRail() {
                 setShowAddMenu(false);
               }}
             >
-              Sunucu oluştur
+              Create a server
             </button>
             <button
               className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-surface-2 cursor-pointer"
@@ -94,7 +94,7 @@ export function ServerRail() {
                 setShowAddMenu(false);
               }}
             >
-              Davetle katıl
+              Join with an invite
             </button>
           </div>
         )}
@@ -105,7 +105,7 @@ export function ServerRail() {
       <button
         onClick={() => logout()}
         className="flex h-10 w-10 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-danger cursor-pointer"
-        title="Çıkış yap"
+        title="Log out"
       >
         <LogOut size={18} />
       </button>
@@ -114,7 +114,7 @@ export function ServerRail() {
         <button
           onClick={openUserSettings}
           className="cursor-pointer rounded-full"
-          title="Kullanıcı ayarları"
+          title="User settings"
         >
           <Avatar name={profile.username} src={profile.avatarUrl} size={36} />
         </button>

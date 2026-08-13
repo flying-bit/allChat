@@ -60,9 +60,9 @@ export function DmSidebar() {
         } md:flex`}
       >
         <div className="flex h-14 items-center border-b border-border px-4">
-          <h2 className="font-semibold">Doğrudan Mesajlar</h2>
+          <h2 className="font-semibold">Direct Messages</h2>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
           <Link
             href="/app/friends"
             onClick={closeChannelDrawer}
@@ -73,7 +73,7 @@ export function DmSidebar() {
             }`}
           >
             <Users size={18} />
-            Arkadaşlar
+            Friends
           </Link>
           <div className="my-2 h-px bg-border" />
           {dms.map((dm) => (

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "allChat",
-  description: "Discord'a alternatif, Firebase tabanlı sohbet uygulaması",
+  description: "A Discord alternative built on Firebase",
 };
 
 const noFlashScript = `
@@ -30,7 +30,7 @@ try {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="tr"
+      lang="en"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >

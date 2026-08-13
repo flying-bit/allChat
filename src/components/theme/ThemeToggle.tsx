@@ -11,7 +11,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      aria-label="Temayı değiştir"
+      aria-label="Toggle theme"
       className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-foreground hover:bg-surface-2 cursor-pointer"
     >
       <motion.span

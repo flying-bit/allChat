@@ -170,7 +170,7 @@ export async function updateUsername(uid: string, oldUsernameLower: string, newU
   const newLower = usernameLower(trimmed);
   if (newLower === oldUsernameLower) return;
   const available = await isUsernameAvailable(trimmed);
-  if (!available) throw new Error("Bu kullanıcı adı zaten alınmış.");
+  if (!available) throw new Error("That username is already taken.");
   const updates: Record<string, unknown> = {
     [`usernames/${oldUsernameLower}`]: null,
     [`usernames/${newLower}`]: uid,
@@ -257,13 +257,13 @@ export async function createServer(uid: string, name: string) {
       inviteCode,
     },
     [`serverChannels/${serverId}/${textChannelId}`]: {
-      name: "genel",
+      name: "general",
       type: "text",
       order: 0,
       createdAt: serverTimestamp(),
     },
     [`serverChannels/${serverId}/${voiceChannelId}`]: {
-      name: "Sesli Sohbet",
+      name: "Voice Chat",
       type: "voice",
       order: 1,
       createdAt: serverTimestamp(),

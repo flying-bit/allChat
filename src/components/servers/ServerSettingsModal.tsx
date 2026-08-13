@@ -61,7 +61,7 @@ export function ServerSettingsModal({
       }
       onClose();
     } catch {
-      setError("Kaydedilemedi, tekrar dene.");
+      setError("Couldn't save, try again.");
     } finally {
       setSaving(false);
     }
@@ -70,14 +70,14 @@ export function ServerSettingsModal({
   const iconSrc = preview ?? server.iconUrl;
 
   return (
-    <Modal open={open} onClose={onClose} title="Sunucu ayarları">
+    <Modal open={open} onClose={onClose} title="Server settings">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="group relative flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-border bg-surface-2"
-            title="Logoyu değiştir"
+            title="Change the logo"
           >
             {iconSrc ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -100,7 +100,7 @@ export function ServerSettingsModal({
           />
           <Input
             id="server-settings-name"
-            label="Sunucu adı"
+            label="Server name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -109,7 +109,7 @@ export function ServerSettingsModal({
         </div>
         {error && <p className="text-sm text-danger">{error}</p>}
         <Button type="submit" loading={saving} className="w-full">
-          Kaydet
+          Save
         </Button>
       </form>
     </Modal>

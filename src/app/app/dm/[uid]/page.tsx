@@ -27,14 +27,14 @@ export default function DmPage() {
   if (!user || !otherProfile) return <div className="flex-1" />;
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <TopBar
         icon={<Avatar name={otherProfile.username} src={otherProfile.avatarUrl} size={28} />}
         title={otherProfile.username}
       />
       <MessageList messages={messages} currentUid={user.uid} />
       <MessageInput
-        placeholder={`${otherProfile.username} kullanıcısına mesaj gönder`}
+        placeholder={`Message ${otherProfile.username}`}
         uploadImage={(file) => uploadPastedImage(dmId as string, file)}
         onSend={(content) => sendDmMessage(user.uid, otherUid, content)}
       />

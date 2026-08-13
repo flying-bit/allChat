@@ -63,7 +63,7 @@ export function UserSettingsModal() {
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kaydedilemedi, tekrar dene.");
+      setError(err instanceof Error ? err.message : "Couldn't save, try again.");
     } finally {
       setSaving(false);
     }
@@ -72,14 +72,14 @@ export function UserSettingsModal() {
   if (!profile) return null;
 
   return (
-    <Modal open={open} onClose={onClose} title="Kullanıcı ayarları">
+    <Modal open={open} onClose={onClose} title="User settings">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="group relative cursor-pointer rounded-full"
-            title="Profil fotoğrafını değiştir"
+            title="Change your avatar"
           >
             <Avatar name={profile.username} src={avatarPreview ?? profile.avatarUrl} size={64} />
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
@@ -95,7 +95,7 @@ export function UserSettingsModal() {
           />
           <Input
             id="user-settings-username"
-            label="Kullanıcı adı"
+            label="Username"
             required
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -104,9 +104,9 @@ export function UserSettingsModal() {
         </div>
         <p className="text-xs text-muted">{profile.email}</p>
         {error && <p className="text-sm text-danger">{error}</p>}
-        {saved && <p className="text-sm text-accent">Kaydedildi!</p>}
+        {saved && <p className="text-sm text-accent">Saved!</p>}
         <Button type="submit" loading={saving} className="w-full">
-          Kaydet
+          Save
         </Button>
       </form>
     </Modal>

@@ -32,14 +32,14 @@ function RequestRow({
         <button
           onClick={onAccept}
           className="rounded-md bg-accent p-1.5 text-accent-foreground hover:brightness-95 cursor-pointer"
-          title="Kabul et"
+          title="Accept"
         >
           <Check size={16} />
         </button>
         <button
           onClick={onDecline}
           className="rounded-md bg-surface p-1.5 text-muted hover:text-danger cursor-pointer"
-          title="Reddet"
+          title="Decline"
         >
           <X size={16} />
         </button>
@@ -61,7 +61,7 @@ export function FriendRequests() {
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
-      <h3 className="mb-2 font-semibold">Gelen İstekler ({requests.length})</h3>
+      <h3 className="mb-2 font-semibold">Incoming Requests ({requests.length})</h3>
       <div className="flex flex-col gap-2">
         {requests.map((r) => (
           <RequestRow

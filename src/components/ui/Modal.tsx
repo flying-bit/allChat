@@ -38,7 +38,7 @@ export function Modal({
               <button
                 onClick={onClose}
                 className="rounded-md p-1 text-muted hover:bg-surface-2 cursor-pointer"
-                aria-label="Kapat"
+                aria-label="Close"
               >
                 <X size={18} />
               </button>

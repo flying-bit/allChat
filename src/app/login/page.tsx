@@ -28,7 +28,7 @@ export default function LoginPage() {
       await login(email, password);
       router.replace("/app");
     } catch {
-      setError("E-posta veya şifre hatalı.");
+      setError("Incorrect email or password.");
     } finally {
       setSubmitting(false);
     }
@@ -43,13 +43,13 @@ export default function LoginPage() {
         className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm"
       >
         <h1 className="mb-1 text-2xl font-bold text-accent">allChat</h1>
-        <p className="mb-6 text-sm text-muted">Hesabına giriş yap</p>
+        <p className="mb-6 text-sm text-muted">Log in to your account</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
             id="email"
             type="email"
-            label="E-posta"
+            label="Email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -57,21 +57,21 @@ export default function LoginPage() {
           <Input
             id="password"
             type="password"
-            label="Şifre"
+            label="Password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && <p className="text-sm text-danger">{error}</p>}
           <Button type="submit" loading={submitting} className="mt-2 w-full">
-            Giriş Yap
+            Log In
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted">
-          Hesabın yok mu?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/register" className="font-medium text-accent hover:underline">
-            Kayıt ol
+            Sign up
           </Link>
         </p>
       </motion.div>

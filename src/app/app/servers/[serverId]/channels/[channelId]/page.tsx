@@ -36,7 +36,7 @@ export default function ChannelPage() {
     <button
       onClick={toggleMemberList}
       className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-foreground cursor-pointer lg:hidden"
-      aria-label="Üye listesini aç"
+      aria-label="Open member list"
     >
       <Users size={18} />
     </button>
@@ -48,8 +48,8 @@ export default function ChannelPage() {
 
   if (channel.type === "voice") {
     return (
-      <div className="flex min-w-0 flex-1">
-        <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <TopBar
             icon={<Volume2 size={18} className="text-muted" />}
             title={channel.name}
@@ -63,8 +63,8 @@ export default function ChannelPage() {
   }
 
   return (
-    <div className="flex min-w-0 flex-1">
-      <div className="flex min-w-0 flex-1 flex-col">
+    <div className="flex min-h-0 min-w-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <TopBar
           icon={<Hash size={18} className="text-muted" />}
           title={channel.name}
@@ -72,7 +72,7 @@ export default function ChannelPage() {
         />
         <MessageList messages={messages} currentUid={user.uid} />
         <MessageInput
-          placeholder={`#${channel.name} kanalına mesaj gönder`}
+          placeholder={`Message #${channel.name}`}
           uploadImage={(file) => uploadPastedImage(channelId, file)}
           onSend={(content) => sendChannelMessage(channelId, user.uid, content)}
         />

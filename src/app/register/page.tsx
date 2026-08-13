@@ -29,7 +29,7 @@ export default function RegisterPage() {
       await register(email, password, username);
       router.replace("/app");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kayıt sırasında bir hata oluştu.");
+      setError(err instanceof Error ? err.message : "Something went wrong during sign up.");
     } finally {
       setSubmitting(false);
     }
@@ -44,12 +44,12 @@ export default function RegisterPage() {
         className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm"
       >
         <h1 className="mb-1 text-2xl font-bold text-accent">allChat</h1>
-        <p className="mb-6 text-sm text-muted">Yeni bir hesap oluştur</p>
+        <p className="mb-6 text-sm text-muted">Create a new account</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
             id="username"
-            label="Kullanıcı adı"
+            label="Username"
             required
             minLength={3}
             value={username}
@@ -58,7 +58,7 @@ export default function RegisterPage() {
           <Input
             id="email"
             type="email"
-            label="E-posta"
+            label="Email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -66,7 +66,7 @@ export default function RegisterPage() {
           <Input
             id="password"
             type="password"
-            label="Şifre"
+            label="Password"
             required
             minLength={6}
             value={password}
@@ -74,14 +74,14 @@ export default function RegisterPage() {
           />
           {error && <p className="text-sm text-danger">{error}</p>}
           <Button type="submit" loading={submitting} className="mt-2 w-full">
-            Kayıt Ol
+            Sign Up
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted">
-          Zaten hesabın var mı?{" "}
+          Already have an account?{" "}
           <Link href="/login" className="font-medium text-accent hover:underline">
-            Giriş yap
+            Log in
           </Link>
         </p>
       </motion.div>
