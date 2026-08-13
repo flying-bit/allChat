@@ -50,9 +50,16 @@ export function UserSettingsModal() {
     setSaved(false);
     try {
       if (avatarFile) {
-        // Fire-and-forget so a slow/failing upload doesn't leave the
-        // user stuck on a spinner - the username change already saved.
-        void updateUserAvatar(user.uid, avatarFile).catch(() => {});
+        // Kicked off without awaiting so a slow upload doesn't leave the
+        // user stuck on a spinner while the username save (below) is
+        // usually much faster - but we still report a failure when it
+        // eventually happens instead of silently pretending it worked.
+        void updateUserAvatar(user.uid, avatarFile).catch(() => {
+          setSaved(false);
+          setError(
+            "Couldn't upload the photo. Make sure Firebase Storage is enabled for your project."
+          );
+        });
       }
       const trimmed = username.trim();
       if (trimmed && trimmed !== profile.username) {

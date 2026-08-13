@@ -41,10 +41,14 @@ export function CreateServerModal({ open, onClose }: { open: boolean; onClose: (
     try {
       const { serverId, textChannelId } = await createServer(user.uid, name.trim());
       if (iconFile) {
-        // Fire-and-forget: the server itself is already created, so a slow
-        // or failing logo upload (eg. retries against a misconfigured
-        // Storage bucket) shouldn't delay navigation into the new server.
-        void updateServerIcon(serverId, iconFile).catch(() => {});
+        // The server itself is already created, so a failing logo upload
+        // shouldn't block navigation into the new server - but it also
+        // shouldn't fail silently, so surface it once it settles.
+        void updateServerIcon(serverId, iconFile).catch(() => {
+          alert(
+            "The server was created, but the logo upload failed. Make sure Firebase Storage is enabled for your project."
+          );
+        });
       }
       reset();
       onClose();

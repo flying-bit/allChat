@@ -55,9 +55,14 @@ export function ServerSettingsModal({
         await updateServerName(server.id, name.trim());
       }
       if (iconFile) {
-        // Fire-and-forget so a slow/failing upload doesn't leave the
-        // owner stuck on a spinner - the name change already saved.
-        void updateServerIcon(server.id, iconFile).catch(() => {});
+        try {
+          await updateServerIcon(server.id, iconFile);
+        } catch {
+          setError(
+            "Name saved, but the logo upload failed. Make sure Firebase Storage is enabled for your project."
+          );
+          return; // keep the modal open so the message is visible
+        }
       }
       onClose();
     } catch {
