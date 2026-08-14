@@ -54,6 +54,7 @@ export interface MessageReplyRef {
   senderId: string;
   text?: string;
   hasImage?: boolean;
+  hasVideo?: boolean;
 }
 
 export interface MessageData {
@@ -61,6 +62,7 @@ export interface MessageData {
   senderId: string;
   text?: string;
   imageUrl?: string;
+  videoUrl?: string;
   createdAt: number;
   replyTo?: MessageReplyRef;
 }

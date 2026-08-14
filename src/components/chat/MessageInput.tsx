@@ -5,7 +5,7 @@ import { Send, X, ImageIcon, Reply, Sticker } from "lucide-react";
 import { animate } from "animejs";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/Button";
-import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
+import { MAX_MESSAGE_LENGTH, MAX_VIDEO_BYTES } from "@/lib/constants";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
 import { assertFileSize } from "@/lib/sanitize";
 import { GifPicker } from "./GifPicker";
@@ -26,7 +26,7 @@ function ReplyChip({ replyTo, onCancel }: { replyTo: MessageData; onCancel: () =
         Replying to <span className="font-medium text-foreground">{profile?.username ?? "..."}</span>
       </span>
       <span className="truncate text-muted">
-        {replyTo.text || (replyTo.imageUrl ? "📷 Photo" : "")}
+        {replyTo.text || (replyTo.videoUrl ? "🎬 Video" : replyTo.imageUrl ? "📷 Photo" : "")}
       </span>
       <button
         type="button"
@@ -40,26 +40,31 @@ function ReplyChip({ replyTo, onCancel }: { replyTo: MessageData; onCancel: () =
   );
 }
 
-// A pending attachment is either a locally-picked file (paste or file
-// input - uploaded via `uploadImage` at send time) or a GIF picked from
-// KLIPY, linked directly from their CDN with no upload step at all.
-// Deferring the file case until send (rather than uploading on pick)
+// A pending attachment is either a locally-picked image (paste or file
+// input - uploaded via `uploadImage` at send time), a locally-picked video
+// (uploaded via `uploadVideo`, which goes straight to Cloudinary rather
+// than through our server - see db.ts's uploadVideoToServer), or a GIF
+// picked from KLIPY, linked directly from their CDN with no upload step at
+// all. Deferring the file cases until send (rather than uploading on pick)
 // matches the existing paste/attach flow and lets the user back out with
 // no leftover upload.
 type PendingAttachment =
   | { kind: "file"; file: File; previewUrl: string }
+  | { kind: "video"; file: File; previewUrl: string }
   | { kind: "gif"; sourceUrl: string; previewUrl: string };
 
 export function MessageInput({
   onSend,
   uploadImage,
+  uploadVideo,
   placeholder,
   onTypingChange,
   replyTo,
   onCancelReply,
 }: {
-  onSend: (content: { text?: string; imageUrl?: string; replyTo?: MessageData }) => Promise<void>;
+  onSend: (content: { text?: string; imageUrl?: string; videoUrl?: string; replyTo?: MessageData }) => Promise<void>;
   uploadImage: (file: File) => Promise<string>;
+  uploadVideo: (file: File) => Promise<string>;
   placeholder: string;
   onTypingChange?: (isTyping: boolean) => void;
   replyTo?: MessageData | null;
@@ -109,7 +114,7 @@ export function MessageInput({
   }, []);
 
   function clearPending() {
-    if (pending?.kind === "file") URL.revokeObjectURL(pending.previewUrl);
+    if (pending?.kind === "file" || pending?.kind === "video") URL.revokeObjectURL(pending.previewUrl);
     setPending(null);
   }
 
@@ -122,6 +127,17 @@ export function MessageInput({
     }
     setError(null);
     setPending({ kind: "file", file, previewUrl: URL.createObjectURL(file) });
+  }
+
+  function selectVideoFile(file: File) {
+    try {
+      assertFileSize(file, MAX_VIDEO_BYTES);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That file is too large.");
+      return;
+    }
+    setError(null);
+    setPending({ kind: "video", file, previewUrl: URL.createObjectURL(file) });
   }
 
   function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>) {
@@ -141,7 +157,10 @@ export function MessageInput({
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) selectImageFile(file);
+    if (file) {
+      if (file.type.startsWith("video/")) selectVideoFile(file);
+      else selectImageFile(file);
+    }
     // Reset so picking the exact same file again still fires onChange.
     e.target.value = "";
   }
@@ -153,10 +172,11 @@ export function MessageInput({
     setError(null);
     try {
       let imageUrl: string | undefined;
-      if (pending) {
-        imageUrl = pending.kind === "file" ? await uploadImage(pending.file) : pending.sourceUrl;
-      }
-      await onSend({ text: text.trim() || undefined, imageUrl, replyTo: replyTo ?? undefined });
+      let videoUrl: string | undefined;
+      if (pending?.kind === "file") imageUrl = await uploadImage(pending.file);
+      else if (pending?.kind === "video") videoUrl = await uploadVideo(pending.file);
+      else if (pending?.kind === "gif") imageUrl = pending.sourceUrl;
+      await onSend({ text: text.trim() || undefined, imageUrl, videoUrl, replyTo: replyTo ?? undefined });
       setText("");
       stopTyping();
       if (pending) clearPending();
@@ -174,7 +194,7 @@ export function MessageInput({
     } catch (err) {
       console.error("Failed to send message:", err);
       const detail = err instanceof Error ? err.message : String(err);
-      setError(pending ? `Couldn't upload the image: ${detail}` : `Couldn't send the message: ${detail}`);
+      setError(pending ? `Couldn't upload the attachment: ${detail}` : `Couldn't send the message: ${detail}`);
     } finally {
       setSending(false);
     }
@@ -201,12 +221,16 @@ export function MessageInput({
             transition={{ type: "spring", duration: 0.3, bounce: 0.3 }}
             className="flex w-fit items-center gap-2 overflow-hidden rounded-lg border border-border bg-surface-2 p-2"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={pending.previewUrl}
-              alt="preview"
-              className="h-16 w-16 rounded object-cover"
-            />
+            {pending.kind === "video" ? (
+              <video src={pending.previewUrl} muted className="h-16 w-16 rounded object-cover" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={pending.previewUrl}
+                alt="preview"
+                className="h-16 w-16 rounded object-cover"
+              />
+            )}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -223,7 +247,7 @@ export function MessageInput({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           className="mb-1 shrink-0 cursor-pointer rounded-md p-0.5 text-muted hover:text-foreground"
-          aria-label="Attach an image or GIF"
+          aria-label="Attach an image or video"
         >
           <ImageIcon size={18} />
         </button>
@@ -238,7 +262,7 @@ export function MessageInput({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/mp4,video/quicktime,video/webm"
           onChange={handleFileChange}
           className="hidden"
         />
@@ -283,7 +307,7 @@ export function MessageInput({
             animate={{ opacity: 1 }}
             className="mt-1 text-[11px] text-muted"
           >
-            Attach a photo/GIF, search a GIF, or paste an image with Ctrl+V.
+            Attach a photo or video, search a GIF, or paste an image with Ctrl+V.
           </motion.p>
         )}
       </AnimatePresence>

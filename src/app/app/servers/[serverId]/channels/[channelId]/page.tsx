@@ -23,6 +23,7 @@ import {
   setChannelReaction,
   setTyping,
   uploadPastedImage,
+  uploadChatVideo,
 } from "@/lib/db";
 import type { ChannelData, MessageData, ReactionMap } from "@/types";
 
@@ -127,6 +128,7 @@ export default function ChannelPage() {
         <MessageInput
           placeholder={`Message #${channel.name}`}
           uploadImage={(file) => uploadPastedImage(channelId, file)}
+          uploadVideo={(file) => uploadChatVideo(channelId, file)}
           onSend={(content) => sendChannelMessage(channelId, user.uid, content)}
           replyTo={replyTo}
           onCancelReply={() => setReplyTo(null)}

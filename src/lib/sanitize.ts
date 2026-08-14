@@ -79,10 +79,10 @@ export function sanitizeMessageText(raw: string | undefined): string | undefined
 // Checked at file-selection time so an oversized file gets an immediate,
 // specific error instead of a generic failure after a wasted upload
 // round-trip (the server's MAX_BYTES check in /api/upload/route.ts is the
-// real enforcement point - this is just faster feedback).
-export function assertFileSize(file: File): File {
-  if (file.size > MAX_IMAGE_BYTES) {
-    const maxMb = Math.round(MAX_IMAGE_BYTES / (1024 * 1024));
+// real enforcement point for images - this is just faster feedback).
+export function assertFileSize(file: File, maxBytes: number = MAX_IMAGE_BYTES): File {
+  if (file.size > maxBytes) {
+    const maxMb = Math.round(maxBytes / (1024 * 1024));
     throw new Error(`That file is too large (max ${maxMb}MB).`);
   }
   return file;

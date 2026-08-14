@@ -15,6 +15,12 @@ export const MAX_VC_USERS = 4;
 // sanitize.ts's assertFileSize, before wasting a round trip on a file
 // that's going to be rejected anyway).
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+// Videos upload directly to Cloudinary (see /api/video-upload-signature),
+// bypassing our own server entirely - so unlike images this isn't limited
+// by Vercel's serverless request body cap, only by Cloudinary's own account
+// limits (free tier: 100MB/file). This is an app-level choice, not a
+// platform constraint.
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 
 // ---------- Validation & anti-abuse ----------
 export const MIN_USERNAME_LENGTH = 3;

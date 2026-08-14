@@ -85,6 +85,49 @@ async function uploadImageToServer(folder: string, file: File): Promise<string> 
   return url;
 }
 
+// ---------- Video uploads (direct-to-Cloudinary - see /api/video-upload-signature) ----------
+
+async function uploadVideoToServer(folder: string, file: File): Promise<string> {
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) throw new Error("Not signed in");
+  const sigRes = await fetch("/api/video-upload-signature", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ folder }),
+  });
+  if (!sigRes.ok) {
+    const body = await sigRes.json().catch(() => null);
+    throw new Error(body?.error || "Couldn't prepare the video upload");
+  }
+  const { cloudName, apiKey, timestamp, signature, folder: fullFolder, allowedFormats } =
+    (await sigRes.json()) as {
+      cloudName: string;
+      apiKey: string;
+      timestamp: number;
+      signature: string;
+      folder: string;
+      allowedFormats: string;
+    };
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", apiKey);
+  formData.append("timestamp", String(timestamp));
+  formData.append("signature", signature);
+  formData.append("folder", fullFolder);
+  formData.append("allowed_formats", allowedFormats);
+
+  const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
+    method: "POST",
+    body: formData,
+  });
+  const uploadBody = await uploadRes.json().catch(() => null);
+  if (!uploadRes.ok || !uploadBody?.secure_url) {
+    throw new Error(uploadBody?.error?.message || "Video upload failed");
+  }
+  return uploadBody.secure_url as string;
+}
+
 // ---------- GIF search (KLIPY, proxied server-side - see /api/gifs/*) ----------
 
 export async function searchGifs(query: string, page = 1): Promise<unknown> {
@@ -563,6 +606,7 @@ function buildReplyRef(source: MessageData): MessageReplyRef {
     senderId: source.senderId,
     text: source.text ? source.text.slice(0, MAX_REPLY_QUOTE_LENGTH) : undefined,
     hasImage: source.imageUrl ? true : undefined,
+    hasVideo: source.videoUrl ? true : undefined,
   }) as MessageReplyRef;
 }
 
@@ -579,11 +623,12 @@ export function listenChannelMessages(channelId: string, cb: (msgs: MessageData[
 export async function sendChannelMessage(
   channelId: string,
   senderId: string,
-  content: { text?: string; imageUrl?: string; replyTo?: MessageData }
+  content: { text?: string; imageUrl?: string; videoUrl?: string; replyTo?: MessageData }
 ) {
   const text = sanitizeMessageText(content.text);
   const imageUrl = content.imageUrl ? assertTrustedImageUrl(content.imageUrl) : undefined;
-  if (!text && !imageUrl) return;
+  const videoUrl = content.videoUrl ? assertTrustedImageUrl(content.videoUrl) : undefined;
+  if (!text && !imageUrl && !videoUrl) return;
   const replyTo = content.replyTo ? buildReplyRef(content.replyTo) : undefined;
   const msgRef = push(ref(rtdb, `channelMessages/${channelId}`));
   // Written together with messageRateLimit/{senderId} so the rules' throttle
@@ -593,7 +638,7 @@ export async function sendChannelMessage(
   await update(ref(rtdb), {
     [`channelMessages/${channelId}/${msgRef.key}`]: {
       senderId,
-      ...stripUndefined({ text, imageUrl, replyTo }),
+      ...stripUndefined({ text, imageUrl, videoUrl, replyTo }),
       createdAt: serverTimestamp(),
     },
     [`messageRateLimit/${senderId}`]: serverTimestamp(),
@@ -676,6 +721,10 @@ export async function uploadPastedImage(threadId: string, file: File) {
   return uploadImageToServer(`chatImages/${threadId}`, file);
 }
 
+export async function uploadChatVideo(threadId: string, file: File) {
+  return uploadVideoToServer(`chatVideos/${threadId}`, file);
+}
+
 // ---------- DMs ----------
 
 export function dmIdFor(a: string, b: string) {
@@ -711,11 +760,12 @@ export function listenDmMessages(dmId: string, cb: (msgs: MessageData[]) => void
 export async function sendDmMessage(
   myUid: string,
   otherUid: string,
-  content: { text?: string; imageUrl?: string; replyTo?: MessageData }
+  content: { text?: string; imageUrl?: string; videoUrl?: string; replyTo?: MessageData }
 ) {
   const text = sanitizeMessageText(content.text);
   const imageUrl = content.imageUrl ? assertTrustedImageUrl(content.imageUrl) : undefined;
-  if (!text && !imageUrl) return;
+  const videoUrl = content.videoUrl ? assertTrustedImageUrl(content.videoUrl) : undefined;
+  if (!text && !imageUrl && !videoUrl) return;
   const replyTo = content.replyTo ? buildReplyRef(content.replyTo) : undefined;
   const dmId = dmIdFor(myUid, otherUid);
   const msgRef = push(ref(rtdb, `dmMessages/${dmId}`));
@@ -723,7 +773,7 @@ export async function sendDmMessage(
   const updates: Record<string, unknown> = {
     [`dmMessages/${dmId}/${msgRef.key}`]: {
       senderId: myUid,
-      ...stripUndefined({ text, imageUrl, replyTo }),
+      ...stripUndefined({ text, imageUrl, videoUrl, replyTo }),
       createdAt: serverTimestamp(),
     },
     [`userDms/${myUid}/${otherUid}`]: { dmId, lastMessageAt: now, lastSenderId: myUid },

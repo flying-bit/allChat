@@ -17,7 +17,7 @@ function ReplyQuote({ replyTo }: { replyTo: NonNullable<MessageData["replyTo"]> 
       <Reply size={12} className="shrink-0 -scale-x-100" />
       <span className="font-medium text-foreground/80">{profile?.username ?? "..."}</span>
       <span className="truncate">
-        {replyTo.text || (replyTo.hasImage ? "📷 Photo" : "")}
+        {replyTo.text || (replyTo.hasVideo ? "🎬 Video" : replyTo.hasImage ? "📷 Photo" : "")}
       </span>
     </div>
   );
@@ -130,6 +130,13 @@ export function MessageBubble({
             src={message.imageUrl}
             alt="attachment"
             className="mt-1 max-h-80 max-w-sm rounded-lg border border-border object-contain"
+          />
+        )}
+        {message.videoUrl && (
+          <video
+            src={message.videoUrl}
+            controls
+            className="mt-1 max-h-80 max-w-sm rounded-lg border border-border"
           />
         )}
         {reactions && (

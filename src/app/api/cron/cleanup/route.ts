@@ -43,16 +43,20 @@ async function cleanupMessages(messagesPath: string, reactionsPath: string) {
   return count;
 }
 
-// Only chatImages/ - not avatars/banners/serverIcons, which are meant to
-// persist indefinitely, not expire on a timer.
-async function cleanupChatImages() {
+// Only chatImages/chatVideos/ - not avatars/banners/serverIcons, which are
+// meant to persist indefinitely, not expire on a timer. `resource_type`
+// must match how the asset was uploaded (image vs video) - Cloudinary's
+// Admin API lists/deletes are scoped per resource_type, listing "image"
+// by default won't surface video assets at all.
+async function cleanupCloudinaryFolder(prefix: string, resourceType: "image" | "video") {
   const cutoffIso = new Date(Date.now() - CHAT_IMAGE_RETENTION_MS).toISOString();
   let deleted = 0;
   let nextCursor: string | undefined;
   do {
     const page = await cloudinary.api.resources({
       type: "upload",
-      prefix: "allchat/chatImages/",
+      resource_type: resourceType,
+      prefix,
       max_results: 500,
       next_cursor: nextCursor,
     });
@@ -61,7 +65,7 @@ async function cleanupChatImages() {
     );
     for (let i = 0; i < stale.length; i += 100) {
       const batch = stale.slice(i, i + 100).map((r) => r.public_id);
-      if (batch.length > 0) await cloudinary.api.delete_resources(batch);
+      if (batch.length > 0) await cloudinary.api.delete_resources(batch, { resource_type: resourceType });
       deleted += batch.length;
     }
     nextCursor = page.next_cursor;
@@ -79,7 +83,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = { channelMessagesDeleted: 0, dmMessagesDeleted: 0, chatImagesDeleted: 0, errors: [] as string[] };
+  const result = {
+    channelMessagesDeleted: 0,
+    dmMessagesDeleted: 0,
+    chatImagesDeleted: 0,
+    chatVideosDeleted: 0,
+    errors: [] as string[],
+  };
 
   try {
     result.channelMessagesDeleted = await cleanupMessages("channelMessages", "channelMessageReactions");
@@ -96,10 +106,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    result.chatImagesDeleted = await cleanupChatImages();
+    result.chatImagesDeleted = await cleanupCloudinaryFolder("allchat/chatImages/", "image");
   } catch (err) {
-    console.error("[/api/cron/cleanup] Cloudinary cleanup failed:", err);
+    console.error("[/api/cron/cleanup] Cloudinary image cleanup failed:", err);
     result.errors.push(`chatImages: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  try {
+    result.chatVideosDeleted = await cleanupCloudinaryFolder("allchat/chatVideos/", "video");
+  } catch (err) {
+    console.error("[/api/cron/cleanup] Cloudinary video cleanup failed:", err);
+    result.errors.push(`chatVideos: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   return NextResponse.json(result);
