@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { animate, stagger } from "animejs";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
+import { safeNextPath } from "@/lib/safe-redirect";
 
-export default function LoginPage() {
+function LoginForm() {
   const { user, loading, login } = useAuth();
   const router = useRouter();
+  const next = safeNextPath(useSearchParams().get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,8 +22,8 @@ export default function LoginPage() {
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (!loading && user) router.replace("/app");
-  }, [user, loading, router]);
+    if (!loading && user) router.replace(next);
+  }, [user, loading, router, next]);
 
   useEffect(() => {
     if (!formRef.current) return;
@@ -40,7 +42,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
-      router.replace("/app");
+      router.replace(next);
     } catch {
       setError("Incorrect email or password.");
     } finally {
@@ -89,11 +91,22 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-muted">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="font-medium text-accent hover:underline">
+          <Link
+            href={next === "/app" ? "/register" : `/register?next=${encodeURIComponent(next)}`}
+            className="font-medium text-accent hover:underline"
+          >
             Sign up
           </Link>
         </p>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

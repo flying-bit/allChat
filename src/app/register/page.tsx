@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { animate, stagger } from "animejs";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
+import { safeNextPath } from "@/lib/safe-redirect";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const { user, loading, register } = useAuth();
   const router = useRouter();
+  const next = safeNextPath(useSearchParams().get("next"));
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,8 +23,8 @@ export default function RegisterPage() {
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (!loading && user) router.replace("/app");
-  }, [user, loading, router]);
+    if (!loading && user) router.replace(next);
+  }, [user, loading, router, next]);
 
   useEffect(() => {
     if (!formRef.current) return;
@@ -41,7 +43,7 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       await register(email, password, username);
-      router.replace("/app");
+      router.replace(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong during sign up.");
     } finally {
@@ -100,11 +102,22 @@ export default function RegisterPage() {
 
         <p className="mt-6 text-center text-sm text-muted">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-accent hover:underline">
+          <Link
+            href={next === "/app" ? "/login" : `/login?next=${encodeURIComponent(next)}`}
+            className="font-medium text-accent hover:underline"
+          >
             Log in
           </Link>
         </p>
       </motion.div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
   );
 }

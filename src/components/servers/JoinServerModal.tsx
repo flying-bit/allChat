@@ -15,13 +15,21 @@ export function JoinServerModal({ open, onClose }: { open: boolean; onClose: () 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Accepts either a bare code or a pasted invite link
+  // (.../app/invite/{code}) and pulls out just the code either way.
+  function extractCode(raw: string) {
+    const trimmed = raw.trim();
+    const match = trimmed.match(/\/invite\/([^/?#]+)/);
+    return (match ? match[1] : trimmed).toUpperCase();
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!user || !code.trim()) return;
     setSubmitting(true);
     setError(null);
     try {
-      const result = await joinServerByInviteCode(user.uid, code.trim());
+      const result = await joinServerByInviteCode(user.uid, extractCode(code));
       if (!result.ok) {
         setError("That invite code isn't valid.");
         return;
@@ -45,12 +53,12 @@ export function JoinServerModal({ open, onClose }: { open: boolean; onClose: () 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
           id="invite-code"
-          label="Invite code"
+          label="Invite code or link"
           autoFocus
           required
           value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="e.g. 7K3PQ9XZ"
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="e.g. 7K3PQ9XZ or a pasted invite link"
         />
         {error && <p className="text-sm text-danger">{error}</p>}
         <Button type="submit" loading={submitting} className="w-full">
