@@ -62,6 +62,7 @@ export function MessageInput({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const sendIconRef = useRef<HTMLSpanElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function stopTyping() {
     if (typingTimeoutRef.current) {
@@ -96,6 +97,10 @@ export function MessageInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function selectImageFile(file: File) {
+    setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
+  }
+
   function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>) {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -104,11 +109,18 @@ export function MessageInput({
         const file = item.getAsFile();
         if (file) {
           e.preventDefault();
-          setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
+          selectImageFile(file);
         }
         break;
       }
     }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) selectImageFile(file);
+    // Reset so picking the exact same file again still fires onChange.
+    e.target.value = "";
   }
 
   async function handleSend() {
@@ -190,7 +202,21 @@ export function MessageInput({
         )}
       </AnimatePresence>
       <div className="flex items-end gap-2 rounded-lg border border-border bg-surface px-3 py-2">
-        <ImageIcon size={18} className="mb-1.5 text-muted" />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="mb-1 shrink-0 cursor-pointer rounded-md p-0.5 text-muted hover:text-foreground"
+          aria-label="Attach an image"
+        >
+          <ImageIcon size={18} />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
         <textarea
           ref={inputRef}
           value={text}
@@ -232,7 +258,7 @@ export function MessageInput({
             animate={{ opacity: 1 }}
             className="mt-1 text-[11px] text-muted"
           >
-            You can paste an image with Ctrl+V.
+            Tap the image icon to attach a photo, or paste one with Ctrl+V.
           </motion.p>
         )}
       </AnimatePresence>

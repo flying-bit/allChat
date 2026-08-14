@@ -92,6 +92,12 @@ export function UserSettingsModal() {
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
               <ImagePlus size={20} className="text-white" />
             </div>
+            {/* Always-visible badge, not just the hover overlay above - there's
+                no hover on touch devices, so without this the avatar looked
+                purely decorative on mobile and the picker was undiscoverable. */}
+            <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface bg-surface-2 text-foreground">
+              <ImagePlus size={12} />
+            </div>
           </button>
           <input
             ref={fileInputRef}

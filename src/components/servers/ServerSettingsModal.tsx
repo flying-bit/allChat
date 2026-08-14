@@ -105,19 +105,27 @@ export function ServerSettingsModal({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="group relative flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-border bg-surface-2"
+            className="group relative flex h-16 w-16 shrink-0 cursor-pointer"
             title="Change the logo"
           >
-            {iconSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={iconSrc} alt={name} className="h-full w-full object-cover" />
-            ) : (
-              <span className="text-lg font-semibold text-muted">
-                {name.slice(0, 2).toUpperCase()}
-              </span>
-            )}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-              <ImagePlus size={20} className="text-white" />
+            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-border bg-surface-2">
+              {iconSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={iconSrc} alt={name} className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-lg font-semibold text-muted">
+                  {name.slice(0, 2).toUpperCase()}
+                </span>
+              )}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                <ImagePlus size={20} className="text-white" />
+              </div>
+            </div>
+            {/* Always-visible badge, deliberately outside the overflow-hidden
+                logo container above - the hover overlay never shows on touch
+                devices, which made this look purely decorative on mobile. */}
+            <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface bg-surface-2 text-foreground">
+              <ImagePlus size={12} />
             </div>
           </button>
           <input
