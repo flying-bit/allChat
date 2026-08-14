@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth-context";
+import { assertFileSize } from "@/lib/sanitize";
 import { createServer, updateServerIcon } from "@/lib/db";
 
 export function CreateServerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -21,7 +22,15 @@ export function CreateServerModal({ open, onClose }: { open: boolean; onClose: (
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+    try {
+      assertFileSize(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That file is too large.");
+      return;
+    }
+    setError(null);
     setIconFile(file);
     setPreview(URL.createObjectURL(file));
   }
@@ -44,9 +53,9 @@ export function CreateServerModal({ open, onClose }: { open: boolean; onClose: (
         // The server itself is already created, so a failing logo upload
         // shouldn't block navigation into the new server - but it also
         // shouldn't fail silently, so surface it once it settles.
-        void updateServerIcon(serverId, iconFile).catch(() => {
+        void updateServerIcon(serverId, iconFile).catch((err) => {
           alert(
-            "The server was created, but the logo upload failed. Make sure Firebase Storage is enabled for your project."
+            `The server was created, but the logo upload failed: ${err instanceof Error ? err.message : String(err)}`
           );
         });
       }

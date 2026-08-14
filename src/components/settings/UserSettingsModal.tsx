@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/lib/auth-context";
 import { useMobileUI } from "@/lib/mobile-ui-context";
 import { gradientFor } from "@/lib/color";
+import { assertFileSize } from "@/lib/sanitize";
 import { GifPicker } from "@/components/chat/GifPicker";
 import {
   updateUsername,
@@ -52,14 +53,30 @@ export function UserSettingsModal() {
 
   function handleAvatarFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) setPendingAvatar({ kind: "file", file, previewUrl: URL.createObjectURL(file) });
     e.target.value = "";
+    if (!file) return;
+    try {
+      assertFileSize(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That file is too large.");
+      return;
+    }
+    setError(null);
+    setPendingAvatar({ kind: "file", file, previewUrl: URL.createObjectURL(file) });
   }
 
   function handleBannerFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) setPendingBanner({ kind: "file", file, previewUrl: URL.createObjectURL(file) });
     e.target.value = "";
+    if (!file) return;
+    try {
+      assertFileSize(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That file is too large.");
+      return;
+    }
+    setError(null);
+    setPendingBanner({ kind: "file", file, previewUrl: URL.createObjectURL(file) });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -78,9 +95,9 @@ export function UserSettingsModal() {
           pendingAvatar.kind === "file"
             ? updateUserAvatar(user.uid, pendingAvatar.file)
             : updateUserAvatarFromGif(user.uid, pendingAvatar.sourceUrl);
-        void upload.catch(() => {
+        void upload.catch((err) => {
           setSaved(false);
-          setError("Couldn't upload the avatar, try again.");
+          setError(`Couldn't upload the avatar: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
       if (pendingBanner) {
@@ -88,9 +105,9 @@ export function UserSettingsModal() {
           pendingBanner.kind === "file"
             ? updateUserBanner(user.uid, pendingBanner.file)
             : updateUserBannerFromGif(user.uid, pendingBanner.sourceUrl);
-        void upload.catch(() => {
+        void upload.catch((err) => {
           setSaved(false);
-          setError("Couldn't upload the banner, try again.");
+          setError(`Couldn't upload the banner: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
       const trimmed = username.trim();

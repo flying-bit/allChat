@@ -12,6 +12,7 @@ import {
   MAX_SERVER_NAME_LENGTH,
   MAX_CHANNEL_NAME_LENGTH,
   MAX_MESSAGE_LENGTH,
+  MAX_IMAGE_BYTES,
   CLOUDINARY_URL_PREFIX,
 } from "./constants";
 
@@ -71,6 +72,18 @@ export function sanitizeMessageText(raw: string | undefined): string | undefined
     throw new Error(`Messages can't be longer than ${MAX_MESSAGE_LENGTH} characters.`);
   }
   return cleaned;
+}
+
+// Checked at file-selection time so an oversized file gets an immediate,
+// specific error instead of a generic failure after a wasted upload
+// round-trip (the server's MAX_BYTES check in /api/upload/route.ts is the
+// real enforcement point - this is just faster feedback).
+export function assertFileSize(file: File): File {
+  if (file.size > MAX_IMAGE_BYTES) {
+    const maxMb = Math.round(MAX_IMAGE_BYTES / (1024 * 1024));
+    throw new Error(`That file is too large (max ${maxMb}MB).`);
+  }
+  return file;
 }
 
 // imageUrl only ever comes from our own /api/upload response, but content

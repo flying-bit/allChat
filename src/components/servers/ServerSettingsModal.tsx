@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { updateServerName, updateServerIcon, deleteServer } from "@/lib/db";
+import { assertFileSize } from "@/lib/sanitize";
 import type { ChannelData, ServerData } from "@/types";
 
 export function ServerSettingsModal({
@@ -48,7 +49,15 @@ export function ServerSettingsModal({
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+    try {
+      assertFileSize(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That file is too large.");
+      return;
+    }
+    setError(null);
     setIconFile(file);
     setPreview(URL.createObjectURL(file));
   }
@@ -64,9 +73,9 @@ export function ServerSettingsModal({
       if (iconFile) {
         try {
           await updateServerIcon(server.id, iconFile);
-        } catch {
+        } catch (err) {
           setError(
-            "Name saved, but the logo upload failed. Make sure Firebase Storage is enabled for your project."
+            `Name saved, but the logo upload failed: ${err instanceof Error ? err.message : String(err)}`
           );
           return; // keep the modal open so the message is visible
         }

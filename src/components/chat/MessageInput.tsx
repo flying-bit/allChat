@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
+import { assertFileSize } from "@/lib/sanitize";
 import { GifPicker } from "./GifPicker";
 import type { MessageData } from "@/types";
 
@@ -115,6 +116,13 @@ export function MessageInput({
   }
 
   function selectImageFile(file: File) {
+    try {
+      assertFileSize(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That file is too large.");
+      return;
+    }
+    setError(null);
     setPending({ kind: "file", file, previewUrl: URL.createObjectURL(file) });
   }
 

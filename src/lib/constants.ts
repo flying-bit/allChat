@@ -8,7 +8,13 @@ export const GENESIS_VOICE_CHANNEL_ID = "sesli-sohbet";
 export const GENESIS_VOICE_CHANNEL_NAME = "Voice Chat";
 
 export const MAX_VC_USERS = 4;
-export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+// Animated GIFs routinely run well past a typical static image's size, so
+// this is more generous than a plain photo would need - mirrored as
+// MAX_BYTES in src/app/api/upload/route.ts (the actual enforcement point;
+// this copy just drives an immediate client-side check via
+// sanitize.ts's assertFileSize, before wasting a round trip on a file
+// that's going to be rejected anyway).
+export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 // ---------- Validation & anti-abuse ----------
 export const MIN_USERNAME_LENGTH = 3;

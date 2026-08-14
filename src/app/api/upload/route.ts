@@ -8,7 +8,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const MAX_BYTES = 8 * 1024 * 1024;
+// Kept in sync with MAX_IMAGE_BYTES in src/lib/constants.ts (see that
+// comment for why this is more generous than a typical image cap - GIFs).
+const MAX_BYTES = 20 * 1024 * 1024;
 
 // Only these folders are ever passed by the client (db.ts's
 // uploadImageToServer callers) - reject anything else so a crafted request
