@@ -8,6 +8,7 @@ import { animate, stagger } from "animejs";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/ui/Logo";
 
 export default function RegisterPage() {
   const { user, loading, register } = useAuth();
@@ -56,7 +57,10 @@ export default function RegisterPage() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm"
       >
-        <h1 className="mb-1 text-2xl font-bold text-accent">allChat</h1>
+        <div className="mb-4 flex items-center gap-3">
+          <Logo size={40} />
+          <h1 className="text-2xl font-bold">allChat</h1>
+        </div>
         <p className="mb-6 text-sm text-muted">Create a new account</p>
 
         <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4">

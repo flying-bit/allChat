@@ -11,10 +11,11 @@ export const MAX_VC_USERS = 4;
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 export const PALETTE = {
-  cream: "#F5F5DC",
-  yellow: "#FBC02D",
-  amber: "#FF8F00",
-  red: "#C62828",
+  blurple: "#5865F2",
+  green: "#23A55A",
+  yellow: "#F0B232",
+  fuchsia: "#EB459E",
+  red: "#DA373C",
 } as const;
 
 export const INVITE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";

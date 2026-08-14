@@ -7,6 +7,7 @@ import { Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { listenUserDms } from "@/lib/db";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
+import { useNotifications } from "@/lib/notifications-context";
 import { Avatar } from "@/components/ui/Avatar";
 import { useMobileUI } from "@/lib/mobile-ui-context";
 import type { DmThreadMeta } from "@/types";
@@ -14,10 +15,12 @@ import type { DmThreadMeta } from "@/types";
 function DmRow({
   otherUid,
   active,
+  unread,
   onNavigate,
 }: {
   otherUid: string;
   active: boolean;
+  unread: boolean;
   onNavigate: () => void;
 }) {
   const profile = useUserProfile(otherUid);
@@ -31,7 +34,10 @@ function DmRow({
       }`}
     >
       <Avatar name={profile.username} src={profile.avatarUrl} size={28} />
-      <span className="truncate">{profile.username}</span>
+      <span className={`truncate ${unread && !active ? "font-semibold text-foreground" : ""}`}>
+        {profile.username}
+      </span>
+      {unread && !active && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-danger" />}
     </Link>
   );
 }
@@ -40,6 +46,7 @@ export function DmSidebar() {
   const { user } = useAuth();
   const pathname = usePathname();
   const { channelDrawerOpen, closeChannelDrawer } = useMobileUI();
+  const { unreadDmUids, friendRequestCount } = useNotifications();
   const [dms, setDms] = useState<DmThreadMeta[]>([]);
 
   useEffect(() => {
@@ -74,6 +81,11 @@ export function DmSidebar() {
           >
             <Users size={18} />
             Friends
+            {friendRequestCount > 0 && (
+              <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white">
+                {friendRequestCount}
+              </span>
+            )}
           </Link>
           <div className="my-2 h-px bg-border" />
           {dms.map((dm) => (
@@ -81,6 +93,7 @@ export function DmSidebar() {
               key={dm.otherUid}
               otherUid={dm.otherUid}
               active={activeUid === dm.otherUid}
+              unread={unreadDmUids.has(dm.otherUid)}
               onNavigate={closeChannelDrawer}
             />
           ))}

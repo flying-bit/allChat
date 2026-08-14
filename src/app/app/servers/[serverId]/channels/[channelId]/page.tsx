@@ -14,6 +14,7 @@ import { useMobileUI } from "@/lib/mobile-ui-context";
 import {
   listenChannelMeta,
   listenChannelMessages,
+  markChannelRead,
   sendChannelMessage,
   uploadPastedImage,
 } from "@/lib/db";
@@ -32,6 +33,13 @@ export default function ChannelPage() {
     if (channel?.type !== "text") return;
     return listenChannelMessages(channelId, setMessages);
   }, [channelId, channel?.type]);
+
+  // Viewing a text channel clears its unread badge - re-mark on every
+  // message change so it stays cleared as new messages arrive too.
+  useEffect(() => {
+    if (channel?.type !== "text" || !user || messages.length === 0) return;
+    void markChannelRead(user.uid, channelId);
+  }, [channel?.type, channelId, messages, user]);
 
   const memberListToggle = (
     <button

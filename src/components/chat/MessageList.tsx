@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
 import type { MessageData } from "@/types";
 
@@ -14,19 +14,28 @@ export function MessageList({
   const contentRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Re-scroll to the bottom whenever the content's height changes - not
-  // just when a message is added, but also when a pasted image finishes
-  // loading and pushes the layout taller. Keeps the view pinned to the
-  // latest message at all times.
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+  }, []);
+
+  // Jump to the newest message the instant the message list itself
+  // changes - new message, channel switch, initial load - instead of
+  // waiting for a layout resize to catch up. Keeps the latest message
+  // visible at all times.
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  // Also re-pin to the bottom when the content's height changes after
+  // that, e.g. a pasted image finishing its load and pushing the layout
+  // taller.
   useEffect(() => {
     const content = contentRef.current;
     if (!content) return;
-    const observer = new ResizeObserver(() => {
-      bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
-    });
+    const observer = new ResizeObserver(scrollToBottom);
     observer.observe(content);
     return () => observer.disconnect();
-  }, []);
+  }, [scrollToBottom]);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto py-2">

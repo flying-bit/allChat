@@ -52,6 +52,7 @@ export interface DmThreadMeta {
   dmId: string;
   otherUid: string;
   lastMessageAt: number;
+  lastSenderId?: string;
 }
 
 export interface FriendRequestData {

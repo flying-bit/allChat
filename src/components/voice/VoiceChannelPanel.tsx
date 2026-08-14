@@ -35,7 +35,7 @@ function ParticipantTile({
     >
       <motion.div
         animate={{
-          boxShadow: `0 0 0 ${4 + level * 10}px rgba(255,143,0,${0.15 + level * 0.35})`,
+          boxShadow: `0 0 0 ${4 + level * 10}px rgba(35,165,90,${0.15 + level * 0.35})`,
         }}
         transition={{ duration: 0.08 }}
         className="rounded-full"

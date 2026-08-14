@@ -3,32 +3,45 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --color-cream: #f5f5dc;
-  --color-yellow: #fbc02d;
-  --color-amber: #ff8f00;
-  --color-red: #c62828;
+  /* Classic Discord brand colors */
+  --color-blurple: #5865f2;
+  --color-blurple-dark: #4752c4;
+  --color-green: #23a55a;
+  --color-yellow: #f0b232;
+  --color-fuchsia: #eb459e;
+  --color-red: #da373c;
 
-  --background: var(--color-cream);
-  --surface: #ffffff;
-  --surface-2: #ece9d4;
-  --border: #ddd8bd;
-  --foreground: #2b2712;
-  --muted: #6f6a52;
-  --accent: var(--color-amber);
+  /* Discord "light" theme */
+  --background: #ffffff;
+  --surface: #f2f3f5;
+  --surface-2: #e3e5e8;
+  --surface-3: #e3e5e8;
+  --border: #e3e5e8;
+  --foreground: #060607;
+  --muted: #5c5e66;
+  --accent: var(--color-blurple);
+  --accent-hover: var(--color-blurple-dark);
   --accent-foreground: #ffffff;
   --danger: var(--color-red);
+  --online: var(--color-green);
+  --offline: #80848e;
 }
 
 .dark {
-  --background: #17140e;
-  --surface: #201c14;
-  --surface-2: #2a2519;
-  --border: #3a3323;
-  --foreground: var(--color-cream);
-  --muted: #b8b190;
-  --accent: var(--color-yellow);
-  --accent-foreground: #1a1608;
-  --danger: #ef5350;
+  /* Discord "dark" theme */
+  --background: #313338;
+  --surface: #2b2d31;
+  --surface-2: #35373c;
+  --surface-3: #1e1f22;
+  --border: #1f2023;
+  --foreground: #f2f3f5;
+  --muted: #949ba4;
+  --accent: var(--color-blurple);
+  --accent-hover: #4f545c;
+  --accent-foreground: #ffffff;
+  --danger: #ed4245;
+  --online: var(--color-green);
+  --offline: #80848e;
 }
 
 @theme inline {
@@ -36,14 +49,19 @@
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-border: var(--border);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
   --color-danger: var(--danger);
-  --color-brand-cream: var(--color-cream);
+  --color-online: var(--online);
+  --color-offline: var(--offline);
+  --color-brand-blurple: var(--color-blurple);
+  --color-brand-green: var(--color-green);
   --color-brand-yellow: var(--color-yellow);
-  --color-brand-amber: var(--color-amber);
+  --color-brand-fuchsia: var(--color-fuchsia);
   --color-brand-red: var(--color-red);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

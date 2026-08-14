@@ -1,6 +1,7 @@
 "use client";
 
-const COLORS = ["#FBC02D", "#FF8F00", "#C62828", "#8D6E63", "#455A64", "#00897B"];
+// Discord's own default-avatar palette
+const COLORS = ["#5865F2", "#23A55A", "#F0B232", "#EB459E", "#DA373C", "#9C84EF"];
 
 function colorFor(seed: string) {
   let hash = 0;
@@ -47,10 +48,12 @@ export function Avatar({
       )}
       {online !== undefined && (
         <span
-          className={`absolute bottom-0 right-0 rounded-full border-2 border-surface ${
-            online ? "bg-green-500" : "bg-gray-400"
-          }`}
-          style={{ width: size * 0.3, height: size * 0.3 }}
+          className="absolute bottom-0 right-0 rounded-full border-2 border-surface"
+          style={{
+            width: size * 0.3,
+            height: size * 0.3,
+            backgroundColor: online ? "var(--online)" : "var(--offline)",
+          }}
         />
       )}
     </div>

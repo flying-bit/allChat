@@ -18,6 +18,7 @@ import { InvitePanel } from "@/components/servers/InvitePanel";
 import { ServerSettingsModal } from "@/components/servers/ServerSettingsModal";
 import { Avatar } from "@/components/ui/Avatar";
 import { useMobileUI } from "@/lib/mobile-ui-context";
+import { useNotifications } from "@/lib/notifications-context";
 
 const iconTap = { scale: 0.88 };
 const iconHover = { scale: 1.12 };
@@ -26,11 +27,13 @@ function ChannelLink({
   serverId,
   channel,
   active,
+  unread,
   onNavigate,
 }: {
   serverId: string;
   channel: ChannelData;
   active: boolean;
+  unread: boolean;
   onNavigate: () => void;
 }) {
   return (
@@ -43,7 +46,10 @@ function ChannelLink({
         }`}
       >
         {channel.type === "voice" ? <Volume2 size={16} /> : <Hash size={16} />}
-        <span className="truncate">{channel.name}</span>
+        <span className={`truncate ${unread && !active ? "font-semibold text-foreground" : ""}`}>
+          {channel.name}
+        </span>
+        {unread && !active && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-danger" />}
       </Link>
     </motion.div>
   );
@@ -126,6 +132,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
   const { user, profile } = useAuth();
   const pathname = usePathname();
   const { channelDrawerOpen, closeChannelDrawer, openUserSettings } = useMobileUI();
+  const { unreadChannelIds } = useNotifications();
   const [server, setServer] = useState<ServerData | null>(null);
   const [channels, setChannels] = useState<ChannelData[]>([]);
   const [categories, setCategories] = useState<CategoryData[]>([]);
@@ -226,6 +233,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
               serverId={serverId}
               channel={c}
               active={activeChannelId === c.id}
+              unread={unreadChannelIds.has(c.id)}
               onNavigate={closeChannelDrawer}
             />
           ))}
@@ -298,6 +306,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
                             serverId={serverId}
                             channel={c}
                             active={activeChannelId === c.id}
+                            unread={unreadChannelIds.has(c.id)}
                             onNavigate={closeChannelDrawer}
                           />
                         ))}

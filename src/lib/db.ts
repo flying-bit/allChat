@@ -161,24 +161,49 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   return snap.exists() ? (snap.val() as UserProfile) : null;
 }
 
+// Presence is tracked per-connection (one push id per open tab/device)
+// under `presenceConnections/{uid}/{connId}`, each removed via its own
+// onDisconnect. A single `status/{uid}.online` flag can't do this safely:
+// with two tabs open, closing one would run that tab's onDisconnect and
+// stamp the user offline even though the other tab is still connected -
+// exactly the "shows online and offline at once" bug. Deriving "online"
+// from whether any connection entry still exists fixes that.
 export function setupPresence(uid: string) {
-  const statusRef = ref(rtdb, `status/${uid}`);
   const infoRef = ref(rtdb, ".info/connected");
+  const connectionsRef = ref(rtdb, `presenceConnections/${uid}`);
+  const statusRef = ref(rtdb, `status/${uid}`);
+
   const handler = onValue(infoRef, (snap) => {
     if (snap.val() === false) return;
-    onDisconnect(statusRef)
-      .set({ online: false, lastSeen: serverTimestamp() })
-      .then(() => {
-        set(statusRef, { online: true, lastSeen: serverTimestamp() });
-      });
+    const myConnRef = push(connectionsRef);
+    onDisconnect(myConnRef).remove();
+    onDisconnect(statusRef).update({ lastSeen: serverTimestamp() });
+    set(myConnRef, true);
+    update(statusRef, { online: true, lastSeen: serverTimestamp() });
   });
   return () => off(infoRef, "value", handler);
 }
 
 export function listenStatus(uid: string, cb: (s: StatusInfo | null) => void) {
-  const r = ref(rtdb, `status/${uid}`);
-  const handler = onValue(r, (snap) => cb(snap.exists() ? (snap.val() as StatusInfo) : null));
-  return () => off(r, "value", handler);
+  const connectionsRef = ref(rtdb, `presenceConnections/${uid}`);
+  const statusRef = ref(rtdb, `status/${uid}`);
+  let online = false;
+  let lastSeen = 0;
+  let hasStatus = false;
+  const emit = () => cb(hasStatus ? { online, lastSeen } : null);
+  const h1 = onValue(connectionsRef, (snap) => {
+    online = snap.exists();
+    emit();
+  });
+  const h2 = onValue(statusRef, (snap) => {
+    hasStatus = snap.exists();
+    lastSeen = (snap.val() as StatusInfo | null)?.lastSeen ?? lastSeen;
+    emit();
+  });
+  return () => {
+    off(connectionsRef, "value", h1);
+    off(statusRef, "value", h2);
+  };
 }
 
 export async function updateUsername(uid: string, oldUsernameLower: string, newUsername: string) {
@@ -400,6 +425,40 @@ export async function sendChannelMessage(
   });
 }
 
+// The most recent message's timestamp, for computing unread state without
+// subscribing to the full message history of every channel.
+export function listenChannelLastMessageAt(channelId: string, cb: (at: number) => void) {
+  const r = query(ref(rtdb, `channelMessages/${channelId}`), orderByChild("createdAt"), limitToLast(1));
+  const handler = onValue(r, (snap) => {
+    const val = snap.val() as Record<string, MessageData> | null;
+    const latest = val ? Object.values(val)[0] : null;
+    cb(latest?.createdAt ?? 0);
+  });
+  return () => off(r, "value", handler);
+}
+
+// ---------- Read tracking (for unread badges / notifications) ----------
+
+export async function markChannelRead(uid: string, channelId: string) {
+  await set(ref(rtdb, `userReads/${uid}/channels/${channelId}`), serverTimestamp());
+}
+
+export async function markDmRead(uid: string, otherUid: string) {
+  await set(ref(rtdb, `userReads/${uid}/dms/${otherUid}`), serverTimestamp());
+}
+
+export function listenUserReads(
+  uid: string,
+  cb: (reads: { channels: Record<string, number>; dms: Record<string, number> }) => void
+) {
+  const r = ref(rtdb, `userReads/${uid}`);
+  const handler = onValue(r, (snap) => {
+    const val = snap.val() as { channels?: Record<string, number>; dms?: Record<string, number> } | null;
+    cb({ channels: val?.channels ?? {}, dms: val?.dms ?? {} });
+  });
+  return () => off(r, "value", handler);
+}
+
 // ---------- Images ----------
 
 export async function uploadPastedImage(threadId: string, file: File) {
@@ -415,7 +474,10 @@ export function dmIdFor(a: string, b: string) {
 export function listenUserDms(uid: string, cb: (dms: DmThreadMeta[]) => void) {
   const r = ref(rtdb, `userDms/${uid}`);
   const handler = onValue(r, (snap) => {
-    const val = snap.val() as Record<string, { dmId: string; lastMessageAt: number }> | null;
+    const val = snap.val() as Record<
+      string,
+      { dmId: string; lastMessageAt: number; lastSenderId?: string }
+    > | null;
     const list: DmThreadMeta[] = val
       ? Object.entries(val).map(([otherUid, v]) => ({ otherUid, ...v }))
       : [];
@@ -449,8 +511,8 @@ export async function sendDmMessage(
       ...stripUndefined(content),
       createdAt: serverTimestamp(),
     },
-    [`userDms/${myUid}/${otherUid}`]: { dmId, lastMessageAt: now },
-    [`userDms/${otherUid}/${myUid}`]: { dmId, lastMessageAt: now },
+    [`userDms/${myUid}/${otherUid}`]: { dmId, lastMessageAt: now, lastSenderId: myUid },
+    [`userDms/${otherUid}/${myUid}`]: { dmId, lastMessageAt: now, lastSenderId: myUid },
   };
   await update(ref(rtdb), updates);
 }

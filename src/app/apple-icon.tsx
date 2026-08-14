@@ -3,6 +3,22 @@ import { ImageResponse } from "next/og";
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
+const DOT_SIZE = 19;
+
+function Dot() {
+  return (
+    <div
+      style={{
+        width: DOT_SIZE,
+        height: DOT_SIZE,
+        borderRadius: "50%",
+        background: "#5865F2",
+        display: "flex",
+      }}
+    />
+  );
+}
+
 export default function AppleIcon() {
   return new ImageResponse(
     (
@@ -13,14 +29,28 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#FF8F00",
-          fontFamily: "sans-serif",
-          fontWeight: 700,
-          fontSize: 108,
-          color: "#F5F5DC",
+          background: "#5865F2",
         }}
       >
-        a
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 17,
+            width: 124,
+            height: 90,
+            background: "#ffffff",
+            borderTopLeftRadius: 34,
+            borderTopRightRadius: 34,
+            borderBottomRightRadius: 34,
+            borderBottomLeftRadius: 8,
+          }}
+        >
+          <Dot />
+          <Dot />
+          <Dot />
+        </div>
       </div>
     ),
     { ...size }

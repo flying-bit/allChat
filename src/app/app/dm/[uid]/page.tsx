@@ -9,7 +9,7 @@ import { MessageInput } from "@/components/chat/MessageInput";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/lib/auth-context";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
-import { dmIdFor, listenDmMessages, sendDmMessage, uploadPastedImage } from "@/lib/db";
+import { dmIdFor, listenDmMessages, markDmRead, sendDmMessage, uploadPastedImage } from "@/lib/db";
 import type { MessageData } from "@/types";
 
 export default function DmPage() {
@@ -24,6 +24,11 @@ export default function DmPage() {
     if (!dmId) return;
     return listenDmMessages(dmId, setMessages);
   }, [dmId]);
+
+  useEffect(() => {
+    if (!user || !messages.length) return;
+    void markDmRead(user.uid, otherUid);
+  }, [user, otherUid, messages]);
 
   if (!user || !otherProfile) return <div className="flex-1" />;
 

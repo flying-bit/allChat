@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { CreateServerModal } from "@/components/servers/CreateServerModal";
 import { JoinServerModal } from "@/components/servers/JoinServerModal";
 import { useMobileUI } from "@/lib/mobile-ui-context";
+import { useNotifications } from "@/lib/notifications-context";
 
 const tap = { scale: 0.92 };
 const hover = { scale: 1.06 };
@@ -21,6 +22,7 @@ export function ServerRail() {
   const servers = useUserServers(user?.uid);
   const pathname = usePathname();
   const { openUserSettings } = useMobileUI();
+  const { unreadServerIds, unreadDmUids, friendRequestCount } = useNotifications();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -29,8 +31,13 @@ export function ServerRail() {
   const isFriendsActive = pathname.startsWith("/app/friends") || pathname.startsWith("/app/dm");
 
   return (
-    <div className="flex h-full w-[72px] shrink-0 flex-col items-center gap-2 border-r border-border bg-surface-2 py-3">
-      <motion.div whileHover={hover} whileTap={tap} transition={{ type: "spring", duration: 0.3, bounce: 0.5 }}>
+    <div className="flex h-full w-[72px] shrink-0 flex-col items-center gap-2 border-r border-border bg-surface-3 py-3">
+      <motion.div
+        className="relative"
+        whileHover={hover}
+        whileTap={tap}
+        transition={{ type: "spring", duration: 0.3, bounce: 0.5 }}
+      >
         <Link
           href="/app/friends"
           className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-200 ${
@@ -42,6 +49,9 @@ export function ServerRail() {
         >
           <Users size={22} />
         </Link>
+        {!isFriendsActive && (unreadDmUids.size > 0 || friendRequestCount > 0) && (
+          <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-surface-3 bg-danger" />
+        )}
       </motion.div>
 
       <div className="my-1 h-px w-8 bg-border" />
@@ -59,26 +69,31 @@ export function ServerRail() {
               whileTap={tap}
               transition={{ type: "spring", duration: 0.35, bounce: 0.5 }}
             >
-              <Link
-                href={`/app/servers/${server.id}/channels/${server.defaultChannelId}`}
-                className={`flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-semibold transition-all duration-200 ${
-                  activeServerId === server.id
-                    ? "rounded-xl bg-accent text-accent-foreground"
-                    : "bg-surface text-foreground hover:rounded-xl hover:bg-accent hover:text-accent-foreground"
-                }`}
-                title={server.name}
-              >
-                {server.iconUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={server.iconUrl}
-                    alt={server.name}
-                    className="h-full w-full rounded-[inherit] object-cover"
-                  />
-                ) : (
-                  server.name.slice(0, 2).toUpperCase()
+              <div className="relative">
+                <Link
+                  href={`/app/servers/${server.id}/channels/${server.defaultChannelId}`}
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-semibold transition-all duration-200 ${
+                    activeServerId === server.id
+                      ? "rounded-xl bg-accent text-accent-foreground"
+                      : "bg-surface text-foreground hover:rounded-xl hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                  title={server.name}
+                >
+                  {server.iconUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={server.iconUrl}
+                      alt={server.name}
+                      className="h-full w-full rounded-[inherit] object-cover"
+                    />
+                  ) : (
+                    server.name.slice(0, 2).toUpperCase()
+                  )}
+                </Link>
+                {activeServerId !== server.id && unreadServerIds.has(server.id) && (
+                  <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-surface-3 bg-danger" />
                 )}
-              </Link>
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>
