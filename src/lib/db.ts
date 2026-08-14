@@ -359,9 +359,12 @@ export async function createServer(uid: string, name: string) {
     },
     [`serverInvites/${inviteCode}`]: serverId,
     [`userServers/${uid}/${serverId}`]: true,
-    // Written in the same atomic update as `servers/{serverId}` so the
-    // channelServer .write rule's owner check (which reads the post-write
-    // root) sees this server as already owned by `uid`.
+    // Written in the same atomic update as `servers/{serverId}` - root.child()
+    // reads in that rule do NOT reliably see this same-call sibling write, so
+    // channelServer's .write rule has a "target server doesn't exist yet"
+    // fallback clause for exactly this case (mirroring serverChannels'
+    // pre-existing !root.child('servers').child($serverId).exists() escape
+    // hatch). See database.rules.json.
     [`channelServer/${textChannelId}`]: serverId,
     [`channelServer/${voiceChannelId}`]: serverId,
   };
