@@ -141,11 +141,8 @@ export function MessageInput({
       }
     } catch (err) {
       console.error("Failed to send message:", err);
-      setError(
-        err instanceof Error && pendingImage
-          ? `Couldn't upload the image: ${err.message}`
-          : "Couldn't send the message. Make sure the Firebase rules are applied."
-      );
+      const detail = err instanceof Error ? err.message : String(err);
+      setError(pendingImage ? `Couldn't upload the image: ${detail}` : `Couldn't send the message: ${detail}`);
     } finally {
       setSending(false);
     }

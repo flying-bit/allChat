@@ -122,7 +122,20 @@ export function MessageBubble({
         )}
       </div>
 
-      <div className="absolute right-3 top-0 hidden -translate-y-1/2 items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5 shadow-sm group-hover:flex">
+      {/* Kept fully inside the row's own box (no negative offset/translate
+          poking into the message above) - group-hover only stays true while
+          the pointer is somewhere within this row, so a toolbar straddling
+          the boundary into the previous row flickered shut before a click
+          could land. Forced visible (ignoring hover) while the reaction
+          picker is open, since the picker itself renders *above* this bar
+          - reaching into it would otherwise leave the row's hover box and
+          slam the whole (CSS-only) group-hover toolbar shut mid-click. */}
+      <div
+        className={clsx(
+          "absolute right-3 top-1 z-10 items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5 shadow-sm",
+          pickerOpen ? "flex" : "hidden group-hover:flex"
+        )}
+      >
         <div className="relative">
           <button
             type="button"
