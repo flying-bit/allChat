@@ -1,21 +1,57 @@
 "use client";
 
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
-import { Send, X, ImageIcon } from "lucide-react";
+import { Send, X, ImageIcon, Reply } from "lucide-react";
 import { animate } from "animejs";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/Button";
+import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
+import { useUserProfile } from "@/lib/hooks/useUserProfile";
+import type { MessageData } from "@/types";
+
+function ReplyChip({ replyTo, onCancel }: { replyTo: MessageData; onCancel: () => void }) {
+  const profile = useUserProfile(replyTo.senderId);
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.15 }}
+      className="mb-2 flex items-center gap-2 overflow-hidden rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs"
+    >
+      <Reply size={13} className="shrink-0 -scale-x-100 text-muted" />
+      <span className="text-muted">
+        Replying to <span className="font-medium text-foreground">{profile?.username ?? "..."}</span>
+      </span>
+      <span className="truncate text-muted">
+        {replyTo.text || (replyTo.imageUrl ? "📷 Photo" : "")}
+      </span>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="ml-auto shrink-0 rounded p-0.5 text-muted hover:text-danger cursor-pointer"
+        aria-label="Cancel reply"
+      >
+        <X size={14} />
+      </button>
+    </motion.div>
+  );
+}
 
 export function MessageInput({
   onSend,
   uploadImage,
   placeholder,
   onTypingChange,
+  replyTo,
+  onCancelReply,
 }: {
-  onSend: (content: { text?: string; imageUrl?: string }) => Promise<void>;
+  onSend: (content: { text?: string; imageUrl?: string; replyTo?: MessageData }) => Promise<void>;
   uploadImage: (file: File) => Promise<string>;
   placeholder: string;
   onTypingChange?: (isTyping: boolean) => void;
+  replyTo?: MessageData | null;
+  onCancelReply?: () => void;
 }) {
   const [text, setText] = useState("");
   const [pendingImage, setPendingImage] = useState<{ file: File; previewUrl: string } | null>(
@@ -46,6 +82,10 @@ export function MessageInput({
     if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = window.setTimeout(stopTyping, 3000);
   }
+
+  useEffect(() => {
+    if (replyTo) inputRef.current?.focus();
+  }, [replyTo]);
 
   // Stop signalling "typing" if the input unmounts mid-type (channel/DM
   // switch, navigating away) - the `key={channelId}` on the parent page
@@ -81,13 +121,14 @@ export function MessageInput({
       if (pendingImage) {
         imageUrl = await uploadImage(pendingImage.file);
       }
-      await onSend({ text: text.trim() || undefined, imageUrl });
+      await onSend({ text: text.trim() || undefined, imageUrl, replyTo: replyTo ?? undefined });
       setText("");
       stopTyping();
       if (pendingImage) {
         URL.revokeObjectURL(pendingImage.previewUrl);
         setPendingImage(null);
       }
+      onCancelReply?.();
       inputRef.current?.focus();
       if (sendIconRef.current) {
         animate(sendIconRef.current, {
@@ -119,6 +160,9 @@ export function MessageInput({
 
   return (
     <div className="border-t border-border p-3">
+      <AnimatePresence>
+        {replyTo && <ReplyChip key="reply" replyTo={replyTo} onCancel={() => onCancelReply?.()} />}
+      </AnimatePresence>
       <AnimatePresence>
         {pendingImage && (
           <motion.div
@@ -158,6 +202,7 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           rows={1}
+          maxLength={MAX_MESSAGE_LENGTH}
           className="max-h-32 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted"
         />
         <Button

@@ -53,8 +53,8 @@ export function CreateServerModal({ open, onClose }: { open: boolean; onClose: (
       reset();
       onClose();
       router.push(`/app/servers/${serverId}/channels/${textChannelId}`);
-    } catch {
-      setError("Couldn't create the server, try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't create the server, try again.");
     } finally {
       setSubmitting(false);
     }

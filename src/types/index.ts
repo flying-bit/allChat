@@ -40,13 +40,31 @@ export interface CategoryData {
   createdAt: number;
 }
 
+// Denormalized snapshot of the message being replied to, frozen at reply
+// creation time. RTDB has no joins/foreign keys, and the original could be
+// deleted later, so the quote is stored on the reply itself rather than
+// resolved live - the sender's name/avatar still resolve live via
+// `senderId` (useUserProfile), only the *content* preview is frozen.
+export interface MessageReplyRef {
+  messageId: string;
+  senderId: string;
+  text?: string;
+  hasImage?: boolean;
+}
+
 export interface MessageData {
   id: string;
   senderId: string;
   text?: string;
   imageUrl?: string;
   createdAt: number;
+  replyTo?: MessageReplyRef;
 }
+
+// emoji -> uid -> true. Stored separately from the message itself
+// (channelMessageReactions / dmMessageReactions) so reacting doesn't
+// require write access to someone else's message - see database.rules.json.
+export type ReactionMap = Record<string, Record<string, true>>;
 
 export interface DmThreadMeta {
   dmId: string;

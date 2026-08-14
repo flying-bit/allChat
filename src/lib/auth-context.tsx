@@ -22,6 +22,7 @@ import {
   listenUserProfile,
   setupPresence,
 } from "./db";
+import { assertValidUsername } from "./sanitize";
 import type { UserProfile } from "@/types";
 
 interface AuthContextValue {
@@ -68,13 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   async function register(email: string, password: string, username: string) {
-    const trimmed = username.trim();
-    if (trimmed.length < 3) {
-      throw new Error("Username must be at least 3 characters long.");
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
-      throw new Error("Username can only contain letters, numbers, and underscores.");
-    }
+    const trimmed = assertValidUsername(username);
     const available = await isUsernameAvailable(trimmed);
     if (!available) {
       throw new Error("That username is already taken.");

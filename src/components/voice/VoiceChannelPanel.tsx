@@ -133,6 +133,13 @@ export function VoiceChannelPanel({ channelId }: { channelId: string }) {
     for (const m of members) {
       if (m.uid === user.uid) continue;
       if (connectionsRef.current.has(m.uid)) continue;
+      // Every member's client runs this same effect on every presence
+      // change, so without a tie-breaker both sides of a pair would dial
+      // each other at once (two separate MediaConnections per pair,
+      // fighting over the same `uid` key/audio element). Only the
+      // lower-uid side initiates; the other side answers via the
+      // `peer.on("call", ...)` handler registered in handleJoin.
+      if (user.uid > m.uid) continue;
       const peer = peerRef.current;
       const localStream = localStreamRef.current;
       if (!peer || !localStream) continue;

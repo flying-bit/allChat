@@ -6,21 +6,29 @@
     "users": {
       "$uid": {
         ".read": "auth != null",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['uid', 'username', 'usernameLower', 'email', 'createdAt']) && newData.child('uid').val() === $uid && newData.child('username').isString() && newData.child('username').val().length >= 3 && newData.child('username').val().length <= 32 && newData.child('usernameLower').isString() && newData.child('createdAt').isNumber() && (!data.exists() || newData.child('createdAt').val() === data.child('createdAt').val()) && (!data.exists() || newData.child('email').val() === data.child('email').val())",
+        "avatarUrl": {
+          ".validate": "newData.val().beginsWith('https://res.cloudinary.com/')"
+        }
       }
     },
 
     "usernames": {
-      ".read": "auth != null",
+      ".read": true,
       "$name": {
-        ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid && !newData.exists()))"
+        ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid && !newData.exists()))",
+        ".validate": "$name.matches(/^[a-z0-9_]{3,32}$/)"
       }
     },
 
     "userServers": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        "$serverId": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isBoolean()"
+        }
       }
     },
 
@@ -28,9 +36,14 @@
       ".read": "auth != null",
       "$serverId": {
         ".write": "auth != null && (!data.exists() ? newData.child('ownerId').val() === auth.uid : data.child('ownerId').val() === auth.uid)",
+        ".validate": "newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 60 && (!data.exists() || newData.child('ownerId').val() === data.child('ownerId').val())",
+        "iconUrl": {
+          ".validate": "newData.val().beginsWith('https://res.cloudinary.com/')"
+        },
         "members": {
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid"
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.isBoolean()"
           }
         }
       }
@@ -39,14 +52,20 @@
     "serverChannels": {
       ".read": "auth != null",
       "$serverId": {
-        ".write": "auth != null && (!root.child('servers').child($serverId).exists() || root.child('servers').child($serverId).child('ownerId').val() === auth.uid)"
+        ".write": "auth != null && (!root.child('servers').child($serverId).exists() || root.child('servers').child($serverId).child('ownerId').val() === auth.uid)",
+        "$channelId": {
+          ".validate": "newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 100 && (newData.child('type').val() === 'text' || newData.child('type').val() === 'voice')"
+        }
       }
     },
 
     "serverCategories": {
       ".read": "auth != null",
       "$serverId": {
-        ".write": "auth != null && (!root.child('servers').child($serverId).exists() || root.child('servers').child($serverId).child('ownerId').val() === auth.uid)"
+        ".write": "auth != null && (!root.child('servers').child($serverId).exists() || root.child('servers').child($serverId).child('ownerId').val() === auth.uid)",
+        "$categoryId": {
+          ".validate": "newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 100"
+        }
       }
     },
 
@@ -57,13 +76,39 @@
       }
     },
 
-    "channelMessages": {
+    "channelServer": {
       "$channelId": {
         ".read": "auth != null",
-        ".write": "auth != null",
+        ".write": "auth != null && !data.exists() && root.child('servers').child(newData.val()).child('ownerId').val() === auth.uid",
+        ".validate": "newData.isString() && root.child('servers').child(newData.val()).exists()"
+      }
+    },
+
+    "channelMessages": {
+      "$channelId": {
+        ".read": "auth != null && root.child('servers').child(root.child('channelServer').child($channelId).val()).child('members').child(auth.uid).exists()",
+        ".write": "auth != null && !newData.exists() && root.child('servers').child(root.child('channelServer').child($channelId).val()).child('ownerId').val() === auth.uid",
         ".indexOn": "createdAt",
         "$messageId": {
-          ".validate": "newData.child('senderId').val() === auth.uid && newData.child('createdAt').isNumber()"
+          ".write": "auth != null && ((!data.exists() && newData.exists() && root.child('servers').child(root.child('channelServer').child($channelId).val()).child('members').child(auth.uid).exists()) || (data.exists() && !newData.exists() && data.child('senderId').val() === auth.uid))",
+          ".validate": "!newData.exists() || (newData.child('senderId').val() === auth.uid && newData.child('createdAt').val() === now && (newData.hasChild('text') || newData.hasChild('imageUrl')) && (!newData.hasChild('text') || (newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 4000)) && (!newData.hasChild('imageUrl') || newData.child('imageUrl').val().beginsWith('https://res.cloudinary.com/')) && (!newData.hasChild('replyTo') || (newData.child('replyTo').child('messageId').isString() && newData.child('replyTo').child('senderId').isString() && (!newData.child('replyTo').hasChild('text') || (newData.child('replyTo').child('text').isString() && newData.child('replyTo').child('text').val().length <= 300)))))"
+        }
+      }
+    },
+
+    "channelMessageReactions": {
+      "$channelId": {
+        ".read": "auth != null && root.child('servers').child(root.child('channelServer').child($channelId).val()).child('members').child(auth.uid).exists()",
+        ".write": "auth != null && !newData.exists() && root.child('servers').child(root.child('channelServer').child($channelId).val()).child('ownerId').val() === auth.uid",
+        "$messageId": {
+          ".write": "auth != null && root.child('channelMessages').child($channelId).child($messageId).child('senderId').val() === auth.uid",
+          "$emoji": {
+            ".validate": "$emoji.length > 0 && $emoji.length <= 16",
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && root.child('servers').child(root.child('channelServer').child($channelId).val()).child('members').child(auth.uid).exists()",
+              ".validate": "!newData.exists() || newData.val() === true"
+            }
+          }
         }
       }
     },
@@ -72,7 +117,8 @@
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         "$friendUid": {
-          ".write": "auth != null && (auth.uid === $uid || auth.uid === $friendUid)"
+          ".write": "auth != null && (auth.uid === $uid || auth.uid === $friendUid)",
+          ".validate": "newData.isBoolean()"
         }
       }
     },
@@ -105,19 +151,36 @@
     "dmMessages": {
       "$dmId": {
         ".read": "auth != null && $dmId.contains(auth.uid)",
-        ".write": "auth != null && $dmId.contains(auth.uid)",
         ".indexOn": "createdAt",
         "$messageId": {
-          ".validate": "newData.child('senderId').val() === auth.uid && newData.child('createdAt').isNumber()"
+          ".write": "auth != null && $dmId.contains(auth.uid) && ((!data.exists() && newData.exists()) || (data.exists() && !newData.exists() && data.child('senderId').val() === auth.uid))",
+          ".validate": "!newData.exists() || (newData.child('senderId').val() === auth.uid && newData.child('createdAt').val() === now && (newData.hasChild('text') || newData.hasChild('imageUrl')) && (!newData.hasChild('text') || (newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 4000)) && (!newData.hasChild('imageUrl') || newData.child('imageUrl').val().beginsWith('https://res.cloudinary.com/')) && (!newData.hasChild('replyTo') || (newData.child('replyTo').child('messageId').isString() && newData.child('replyTo').child('senderId').isString() && (!newData.child('replyTo').hasChild('text') || (newData.child('replyTo').child('text').isString() && newData.child('replyTo').child('text').val().length <= 300)))))"
+        }
+      }
+    },
+
+    "dmMessageReactions": {
+      "$dmId": {
+        ".read": "auth != null && $dmId.contains(auth.uid)",
+        "$messageId": {
+          ".write": "auth != null && $dmId.contains(auth.uid) && root.child('dmMessages').child($dmId).child($messageId).child('senderId').val() === auth.uid",
+          "$emoji": {
+            ".validate": "$emoji.length > 0 && $emoji.length <= 16",
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && $dmId.contains(auth.uid)",
+              ".validate": "!newData.exists() || newData.val() === true"
+            }
+          }
         }
       }
     },
 
     "voicePresence": {
       "$channelId": {
-        ".read": "auth != null",
+        ".read": "auth != null && root.child('servers').child(root.child('channelServer').child($channelId).val()).child('members').child(auth.uid).exists()",
         "$uid": {
-          ".write": "auth != null && auth.uid === $uid"
+          ".write": "auth != null && auth.uid === $uid && root.child('servers').child(root.child('channelServer').child($channelId).val()).child('members').child(auth.uid).exists()",
+          ".validate": "!newData.exists() || (newData.child('peerId').isString() && newData.child('displayName').isString() && newData.child('joinedAt').isNumber())"
         }
       }
     },
@@ -151,6 +214,14 @@
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "messageRateLimit": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.val() === now && (!data.exists() || now - data.val() > 400)"
       }
     }
   }

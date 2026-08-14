@@ -8,13 +8,11 @@ import {
   push,
   onValue,
   off,
-  runTransaction,
   onDisconnect,
   serverTimestamp,
   query,
   orderByChild,
   limitToLast,
-  type DatabaseReference,
 } from "firebase/database";
 import { rtdb, auth } from "./firebase";
 import {
@@ -27,17 +25,27 @@ import {
   MAX_VC_USERS,
   INVITE_ALPHABET,
   INVITE_CODE_LENGTH,
+  MAX_REPLY_QUOTE_LENGTH,
 } from "./constants";
+import {
+  assertValidUsername,
+  assertValidServerName,
+  assertValidChannelName,
+  sanitizeMessageText,
+  assertTrustedImageUrl,
+} from "./sanitize";
 import type {
   UserProfile,
   ServerData,
   ChannelData,
   CategoryData,
   MessageData,
+  MessageReplyRef,
   DmThreadMeta,
   FriendRequestData,
   VoicePresenceData,
   StatusInfo,
+  ReactionMap,
 } from "@/types";
 
 const nanoid = customAlphabet(INVITE_ALPHABET, INVITE_CODE_LENGTH);
@@ -110,6 +118,14 @@ export async function ensureGenesisServer() {
       order: 1,
       createdAt: serverTimestamp(),
     },
+    // Membership-scoped channelMessages/voicePresence rules resolve a
+    // channel's server via this index. ownerId "system" means no client
+    // auth.uid can satisfy channelServer's write rule, so - like the rest
+    // of this function - this only succeeds if rules ever allow it; genesis
+    // and its channelServer entries must be seeded once by hand in the
+    // Firebase console (see README).
+    [`channelServer/${GENESIS_TEXT_CHANNEL_ID}`]: GENESIS_SERVER_ID,
+    [`channelServer/${GENESIS_VOICE_CHANNEL_ID}`]: GENESIS_SERVER_ID,
   };
   try {
     await update(ref(rtdb), updates);
@@ -123,12 +139,13 @@ export async function createUserProfile(
   username: string,
   email: string
 ) {
+  const trimmed = assertValidUsername(username);
   await ensureGenesisServer();
-  const lower = usernameLower(username);
+  const lower = usernameLower(trimmed);
   const updates: Record<string, unknown> = {
     [`users/${uid}`]: {
       uid,
-      username,
+      username: trimmed,
       usernameLower: lower,
       email,
       createdAt: serverTimestamp(),
@@ -207,7 +224,7 @@ export function listenStatus(uid: string, cb: (s: StatusInfo | null) => void) {
 }
 
 export async function updateUsername(uid: string, oldUsernameLower: string, newUsername: string) {
-  const trimmed = newUsername.trim();
+  const trimmed = assertValidUsername(newUsername);
   const newLower = usernameLower(trimmed);
   if (newLower === oldUsernameLower) return;
   const available = await isUsernameAvailable(trimmed);
@@ -256,7 +273,7 @@ export function listenServerMemberIds(serverId: string, cb: (uids: string[]) => 
 }
 
 export async function updateServerName(serverId: string, name: string) {
-  await update(ref(rtdb, `servers/${serverId}`), { name: name.trim() });
+  await update(ref(rtdb, `servers/${serverId}`), { name: assertValidServerName(name) });
 }
 
 export async function updateServerIcon(serverId: string, file: File) {
@@ -276,6 +293,23 @@ export async function deleteServer(
   inviteCode: string | undefined,
   channelIds: string[]
 ) {
+  // Two sequential updates, not one: the channelMessages/channelMessageReactions
+  // owner-wipe rules authorize clearing via root.child('servers')...ownerId,
+  // which must still resolve while `servers/{serverId}` exists. Nulling it in
+  // the same multi-path update as the channel data would make root reflect
+  // the post-write (already-deleted) state and reject the whole write. See
+  // database.rules.json.
+  const channelUpdates: Record<string, unknown> = {};
+  for (const channelId of channelIds) {
+    channelUpdates[`channelMessages/${channelId}`] = null;
+    channelUpdates[`channelMessageReactions/${channelId}`] = null;
+  }
+  if (Object.keys(channelUpdates).length) await update(ref(rtdb), channelUpdates);
+
+  // Voice presence isn't included here: security rules only grant write
+  // access per-participant (`voicePresence/{channelId}/{uid}`), not at the
+  // channel level, so bulk-clearing it would reject the whole atomic
+  // update. It's ephemeral and self-clears via onDisconnect anyway.
   const updates: Record<string, unknown> = {
     [`servers/${serverId}`]: null,
     [`serverChannels/${serverId}`]: null,
@@ -283,13 +317,6 @@ export async function deleteServer(
     [`userServers/${ownerUid}/${serverId}`]: null,
   };
   if (inviteCode) updates[`serverInvites/${inviteCode}`] = null;
-  // Voice presence isn't included here: security rules only grant write
-  // access per-participant (`voicePresence/{channelId}/{uid}`), not at the
-  // channel level, so bulk-clearing it would reject the whole atomic
-  // update. It's ephemeral and self-clears via onDisconnect anyway.
-  for (const channelId of channelIds) {
-    updates[`channelMessages/${channelId}`] = null;
-  }
   await update(ref(rtdb), updates);
 }
 
@@ -304,6 +331,7 @@ export function listenServerChannels(serverId: string, cb: (channels: ChannelDat
 }
 
 export async function createServer(uid: string, name: string) {
+  const validName = assertValidServerName(name);
   const serverId = push(ref(rtdb, "servers")).key as string;
   const inviteCode = nanoid();
   const textChannelId = push(ref(rtdb, `serverChannels/${serverId}`)).key as string;
@@ -311,7 +339,7 @@ export async function createServer(uid: string, name: string) {
 
   const updates: Record<string, unknown> = {
     [`servers/${serverId}`]: {
-      name,
+      name: validName,
       ownerId: uid,
       createdAt: serverTimestamp(),
       defaultChannelId: textChannelId,
@@ -331,6 +359,11 @@ export async function createServer(uid: string, name: string) {
     },
     [`serverInvites/${inviteCode}`]: serverId,
     [`userServers/${uid}/${serverId}`]: true,
+    // Written in the same atomic update as `servers/{serverId}` so the
+    // channelServer .write rule's owner check (which reads the post-write
+    // root) sees this server as already owned by `uid`.
+    [`channelServer/${textChannelId}`]: serverId,
+    [`channelServer/${voiceChannelId}`]: serverId,
   };
   await update(ref(rtdb), updates);
   // members write happens after (rule scoped independently)
@@ -384,17 +417,19 @@ export async function createChannel(
   order: number,
   categoryId?: string
 ) {
+  const validName = assertValidChannelName(name);
   const channelId = push(ref(rtdb, `serverChannels/${serverId}`)).key as string;
-  await set(
-    ref(rtdb, `serverChannels/${serverId}/${channelId}`),
-    stripUndefined({
-      name,
+  const updates: Record<string, unknown> = {
+    [`serverChannels/${serverId}/${channelId}`]: stripUndefined({
+      name: validName,
       type,
       order,
       createdAt: serverTimestamp(),
       categoryId,
-    })
-  );
+    }),
+    [`channelServer/${channelId}`]: serverId,
+  };
+  await update(ref(rtdb), updates);
   return channelId;
 }
 
@@ -430,6 +465,17 @@ export async function deleteCategory(serverId: string, categoryId: string) {
 
 // ---------- Channel messages ----------
 
+// Frozen at send time - see the MessageReplyRef comment in types/index.ts
+// for why this isn't resolved live from the original message.
+function buildReplyRef(source: MessageData): MessageReplyRef {
+  return stripUndefined({
+    messageId: source.id,
+    senderId: source.senderId,
+    text: source.text ? source.text.slice(0, MAX_REPLY_QUOTE_LENGTH) : undefined,
+    hasImage: source.imageUrl ? true : undefined,
+  }) as MessageReplyRef;
+}
+
 export function listenChannelMessages(channelId: string, cb: (msgs: MessageData[]) => void) {
   const r = query(ref(rtdb, `channelMessages/${channelId}`), orderByChild("createdAt"), limitToLast(100));
   const handler = onValue(r, (snap) => {
@@ -443,14 +489,61 @@ export function listenChannelMessages(channelId: string, cb: (msgs: MessageData[
 export async function sendChannelMessage(
   channelId: string,
   senderId: string,
-  content: { text?: string; imageUrl?: string }
+  content: { text?: string; imageUrl?: string; replyTo?: MessageData }
 ) {
+  const text = sanitizeMessageText(content.text);
+  const imageUrl = content.imageUrl ? assertTrustedImageUrl(content.imageUrl) : undefined;
+  if (!text && !imageUrl) return;
+  const replyTo = content.replyTo ? buildReplyRef(content.replyTo) : undefined;
   const msgRef = push(ref(rtdb, `channelMessages/${channelId}`));
-  await set(msgRef, {
-    senderId,
-    ...stripUndefined(content),
-    createdAt: serverTimestamp(),
+  // Written together with messageRateLimit/{senderId} so the rules' throttle
+  // check (`.validate` on that node) either accepts or rejects both writes
+  // atomically - a spamming client can't sneak the message through without
+  // the rate-limit stamp, or vice versa.
+  await update(ref(rtdb), {
+    [`channelMessages/${channelId}/${msgRef.key}`]: {
+      senderId,
+      ...stripUndefined({ text, imageUrl, replyTo }),
+      createdAt: serverTimestamp(),
+    },
+    [`messageRateLimit/${senderId}`]: serverTimestamp(),
   });
+}
+
+// Reactions live outside the message node (channelMessageReactions/{channelId})
+// specifically so any member can toggle their own reaction without needing
+// write access to a message someone else authored - see database.rules.json.
+export async function deleteChannelMessage(channelId: string, messageId: string) {
+  // Two sequential writes, not one atomic multi-path update: the reactions
+  // .write rule authorizes "clear all reactions for this message" by
+  // checking the message's *current* senderId via root.child(...), which
+  // only works while the message still exists. Deleting it first would
+  // make that check un-satisfiable in the same call. See database.rules.json.
+  await remove(ref(rtdb, `channelMessageReactions/${channelId}/${messageId}`));
+  await remove(ref(rtdb, `channelMessages/${channelId}/${messageId}`));
+}
+
+export async function setChannelReaction(
+  channelId: string,
+  messageId: string,
+  emoji: string,
+  uid: string,
+  active: boolean
+) {
+  const r = ref(rtdb, `channelMessageReactions/${channelId}/${messageId}/${emoji}/${uid}`);
+  if (active) await set(r, true);
+  else await remove(r);
+}
+
+export function listenChannelReactions(
+  channelId: string,
+  cb: (reactions: Record<string, ReactionMap>) => void
+) {
+  const r = ref(rtdb, `channelMessageReactions/${channelId}`);
+  const handler = onValue(r, (snap) => {
+    cb((snap.val() as Record<string, ReactionMap> | null) ?? {});
+  });
+  return () => off(r, "value", handler);
 }
 
 // The most recent message's timestamp, for computing unread state without
@@ -528,21 +621,54 @@ export function listenDmMessages(dmId: string, cb: (msgs: MessageData[]) => void
 export async function sendDmMessage(
   myUid: string,
   otherUid: string,
-  content: { text?: string; imageUrl?: string }
+  content: { text?: string; imageUrl?: string; replyTo?: MessageData }
 ) {
+  const text = sanitizeMessageText(content.text);
+  const imageUrl = content.imageUrl ? assertTrustedImageUrl(content.imageUrl) : undefined;
+  if (!text && !imageUrl) return;
+  const replyTo = content.replyTo ? buildReplyRef(content.replyTo) : undefined;
   const dmId = dmIdFor(myUid, otherUid);
   const msgRef = push(ref(rtdb, `dmMessages/${dmId}`));
   const now = Date.now();
   const updates: Record<string, unknown> = {
     [`dmMessages/${dmId}/${msgRef.key}`]: {
       senderId: myUid,
-      ...stripUndefined(content),
+      ...stripUndefined({ text, imageUrl, replyTo }),
       createdAt: serverTimestamp(),
     },
     [`userDms/${myUid}/${otherUid}`]: { dmId, lastMessageAt: now, lastSenderId: myUid },
     [`userDms/${otherUid}/${myUid}`]: { dmId, lastMessageAt: now, lastSenderId: myUid },
+    [`messageRateLimit/${myUid}`]: serverTimestamp(),
   };
   await update(ref(rtdb), updates);
+}
+
+export async function deleteDmMessage(dmId: string, messageId: string) {
+  await remove(ref(rtdb, `dmMessageReactions/${dmId}/${messageId}`));
+  await remove(ref(rtdb, `dmMessages/${dmId}/${messageId}`));
+}
+
+export async function setDmReaction(
+  dmId: string,
+  messageId: string,
+  emoji: string,
+  uid: string,
+  active: boolean
+) {
+  const r = ref(rtdb, `dmMessageReactions/${dmId}/${messageId}/${emoji}/${uid}`);
+  if (active) await set(r, true);
+  else await remove(r);
+}
+
+export function listenDmReactions(
+  dmId: string,
+  cb: (reactions: Record<string, ReactionMap>) => void
+) {
+  const r = ref(rtdb, `dmMessageReactions/${dmId}`);
+  const handler = onValue(r, (snap) => {
+    cb((snap.val() as Record<string, ReactionMap> | null) ?? {});
+  });
+  return () => off(r, "value", handler);
 }
 
 // ---------- Friends ----------
@@ -629,20 +755,37 @@ export async function joinVoiceChannel(
   peerId: string,
   displayName: string
 ) {
-  const channelRef = ref(rtdb, `voicePresence/${channelId}`) as DatabaseReference;
-  const result = await runTransaction(channelRef, (current: Record<string, VoicePresenceData> | null) => {
-    const existing = current || {};
-    const others = Object.keys(existing).filter((k) => k !== uid);
-    if (others.length >= MAX_VC_USERS) {
-      return; // abort - full
-    }
-    return {
-      ...existing,
-      [uid]: { peerId, displayName, joinedAt: Date.now() },
-    };
-  });
-  if (!result.committed) return false;
+  // Previously used runTransaction() on the *parent* `voicePresence/{channelId}`
+  // path to atomically enforce the MAX_VC_USERS cap - but security rules only
+  // ever grant .write at the child `voicePresence/{channelId}/{uid}` level, and
+  // a transaction needs write permission at the exact path it targets. That
+  // meant every join was silently rejected with PERMISSION_DENIED (this was
+  // the "can't join voice channels at all" bug).
+  //
+  // The cap can't be moved into the rule either: Realtime Database's rules
+  // language has no numChildren()/parent() (that's the client SDK's
+  // DataSnapshot, not the sandboxed RuleDataSnapshot rules run against) and
+  // no iteration, so there's no way to count siblings there without a
+  // separately-maintained counter node - which itself needs a Cloud Function
+  // to stay tamper-proof, and this project doesn't have Functions deployed.
+  //
+  // So this is a best-effort, non-atomic check: read the current count, then
+  // write if under the cap. Two joins racing in the same instant can both
+  // pass the check and briefly land 5 people in a "4-person" channel - low
+  // stakes for a voice room, self-corrects as soon as anyone leaves. A hard
+  // cap would require a Cloud Function trigger on this path.
+  const presenceRef = ref(rtdb, `voicePresence/${channelId}`);
+  const snap = await get(presenceRef);
+  const current = (snap.val() as Record<string, VoicePresenceData> | null) ?? {};
+  const others = Object.keys(current).filter((k) => k !== uid);
+  if (others.length >= MAX_VC_USERS) return false;
+
   const myRef = ref(rtdb, `voicePresence/${channelId}/${uid}`);
+  try {
+    await set(myRef, { peerId, displayName, joinedAt: Date.now() });
+  } catch {
+    return false; // no longer a member of the channel's server
+  }
   onDisconnect(myRef).remove();
   return true;
 }

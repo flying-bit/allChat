@@ -72,8 +72,8 @@ export function ServerSettingsModal({
         }
       }
       onClose();
-    } catch {
-      setError("Couldn't save, try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save, try again.");
     } finally {
       setSaving(false);
     }

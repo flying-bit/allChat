@@ -2,14 +2,22 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
-import type { MessageData } from "@/types";
+import type { MessageData, ReactionMap } from "@/types";
 
 export function MessageList({
   messages,
   currentUid,
+  reactions,
+  onReply,
+  onDelete,
+  onReact,
 }: {
   messages: MessageData[];
   currentUid: string;
+  reactions: Record<string, ReactionMap>;
+  onReply: (message: MessageData) => void;
+  onDelete: (messageId: string) => void;
+  onReact: (messageId: string, emoji: string, active: boolean) => void;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -46,7 +54,16 @@ export function MessageList({
           </p>
         )}
         {messages.map((m) => (
-          <MessageBubble key={m.id} message={m} isOwn={m.senderId === currentUid} />
+          <MessageBubble
+            key={m.id}
+            message={m}
+            isOwn={m.senderId === currentUid}
+            currentUid={currentUid}
+            reactions={reactions[m.id]}
+            onReply={onReply}
+            onDelete={onDelete}
+            onReact={(emoji, active) => onReact(m.id, emoji, active)}
+          />
         ))}
         <div ref={bottomRef} />
       </div>

@@ -10,6 +10,33 @@ export const GENESIS_VOICE_CHANNEL_NAME = "Voice Chat";
 export const MAX_VC_USERS = 4;
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
+// ---------- Validation & anti-abuse ----------
+export const MIN_USERNAME_LENGTH = 3;
+export const MAX_USERNAME_LENGTH = 32;
+export const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
+export const MAX_SERVER_NAME_LENGTH = 60;
+export const MAX_CHANNEL_NAME_LENGTH = 100;
+export const MAX_MESSAGE_LENGTH = 4000;
+// Minimum ms between messages sent by a single user (channel or DM) -
+// mirrored in database.rules.json's `messageRateLimit` validation, which is
+// the actual enforcement point. This constant only drives client-side UX
+// (e.g. disabling the send button early) and must stay <= the rules value.
+export const MIN_MESSAGE_INTERVAL_MS = 400;
+// Only our own /api/upload route ever writes imageUrl, and it always
+// returns a Cloudinary secure_url - used to reject anything else both
+// client-side and in database.rules.json.
+export const CLOUDINARY_URL_PREFIX = "https://res.cloudinary.com/";
+
+// Quoted preview length for replies - the full original text is not kept,
+// only this snapshot (see MessageReplyRef). Mirrored (as 300) in
+// database.rules.json as an upper-bound backstop.
+export const MAX_REPLY_QUOTE_LENGTH = 200;
+
+// Reaction picker preset - database.rules.json also caps emoji key length
+// generously (16 chars) as a backstop, but the UI only ever sends one of
+// these.
+export const PRESET_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥"] as const;
+
 export const PALETTE = {
   blurple: "#5865F2",
   green: "#23A55A",

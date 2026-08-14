@@ -14,14 +14,17 @@ import { useAuth } from "@/lib/auth-context";
 import { useMobileUI } from "@/lib/mobile-ui-context";
 import {
   clearTyping,
+  deleteChannelMessage,
   listenChannelMeta,
   listenChannelMessages,
+  listenChannelReactions,
   markChannelRead,
   sendChannelMessage,
+  setChannelReaction,
   setTyping,
   uploadPastedImage,
 } from "@/lib/db";
-import type { ChannelData, MessageData } from "@/types";
+import type { ChannelData, MessageData, ReactionMap } from "@/types";
 
 export default function ChannelPage() {
   const { serverId, channelId } = useParams<{ serverId: string; channelId: string }>();
@@ -29,12 +32,28 @@ export default function ChannelPage() {
   const { toggleMemberList } = useMobileUI();
   const [channel, setChannel] = useState<ChannelData | null>(null);
   const [messages, setMessages] = useState<MessageData[]>([]);
+  const [reactions, setReactions] = useState<Record<string, ReactionMap>>({});
+  const [replyTo, setReplyTo] = useState<MessageData | null>(null);
+
+  // Clear a pending reply when the channel changes, without a setState-in-
+  // effect cascade (see the matching comment pattern in ServerSettingsModal)
+  // - adjusting state during render is React's recommended approach here.
+  const [replyToChannelId, setReplyToChannelId] = useState(channelId);
+  if (channelId !== replyToChannelId) {
+    setReplyToChannelId(channelId);
+    setReplyTo(null);
+  }
 
   useEffect(() => listenChannelMeta(serverId, channelId, setChannel), [serverId, channelId]);
 
   useEffect(() => {
     if (channel?.type !== "text") return;
     return listenChannelMessages(channelId, setMessages);
+  }, [channelId, channel?.type]);
+
+  useEffect(() => {
+    if (channel?.type !== "text") return;
+    return listenChannelReactions(channelId, setReactions);
   }, [channelId, channel?.type]);
 
   // Viewing a text channel clears its unread badge - re-mark on every
@@ -94,12 +113,23 @@ export default function ChannelPage() {
           title={channel.name}
           right={memberListToggle}
         />
-        <MessageList messages={messages} currentUid={user.uid} />
+        <MessageList
+          messages={messages}
+          currentUid={user.uid}
+          reactions={reactions}
+          onReply={setReplyTo}
+          onDelete={(messageId) => void deleteChannelMessage(channelId, messageId)}
+          onReact={(messageId, emoji, active) =>
+            void setChannelReaction(channelId, messageId, emoji, user.uid, active)
+          }
+        />
         <TypingIndicator threadId={channelId} currentUid={user.uid} />
         <MessageInput
           placeholder={`Message #${channel.name}`}
           uploadImage={(file) => uploadPastedImage(channelId, file)}
           onSend={(content) => sendChannelMessage(channelId, user.uid, content)}
+          replyTo={replyTo}
+          onCancelReply={() => setReplyTo(null)}
           onTypingChange={(isTyping) => {
             if (!profile) return;
             if (isTyping) setTyping(channelId, user.uid, profile.username);
