@@ -46,6 +46,7 @@ import type {
   VoicePresenceData,
   StatusInfo,
   ReactionMap,
+  GifFavorite,
 } from "@/types";
 
 const nanoid = customAlphabet(INVITE_ALPHABET, INVITE_CODE_LENGTH);
@@ -110,6 +111,47 @@ export async function fetchTrendingGifs(page = 1): Promise<unknown> {
     throw new Error(body?.error || "Couldn't load trending GIFs");
   }
   return res.json();
+}
+
+// ---------- GIF favorites ----------
+
+// RTDB keys can't contain '.', '#', '$', '[', ']', '/' - all over a URL -
+// so favorites are keyed by a hash of fullUrl rather than the URL itself.
+// FNV-1a: simple, deterministic, good-enough collision resistance for a
+// per-user favorites list (not a security boundary - a collision would at
+// worst overwrite one favorite with another).
+function stableKeyForUrl(url: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < url.length; i++) {
+    hash ^= url.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+export async function setGifFavorite(uid: string, fullUrl: string, thumbUrl: string) {
+  const key = stableKeyForUrl(fullUrl);
+  await set(ref(rtdb, `gifFavorites/${uid}/${key}`), {
+    fullUrl: assertTrustedImageUrl(fullUrl),
+    thumbUrl,
+    addedAt: serverTimestamp(),
+  });
+}
+
+export async function removeGifFavorite(uid: string, fullUrl: string) {
+  const key = stableKeyForUrl(fullUrl);
+  await remove(ref(rtdb, `gifFavorites/${uid}/${key}`));
+}
+
+export function listenGifFavorites(uid: string, cb: (favorites: GifFavorite[]) => void) {
+  const r = ref(rtdb, `gifFavorites/${uid}`);
+  const handler = onValue(r, (snap) => {
+    const val = snap.val() as Record<string, GifFavorite> | null;
+    const list = val ? Object.values(val) : [];
+    list.sort((a, b) => b.addedAt - a.addedAt);
+    cb(list);
+  });
+  return () => off(r, "value", handler);
 }
 
 // ---------- Users ----------

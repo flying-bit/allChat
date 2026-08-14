@@ -15,6 +15,7 @@ import {
   MAX_IMAGE_BYTES,
   CLOUDINARY_URL_PREFIX,
   KLIPY_CDN_PREFIX,
+  DISCORD_CDN_PREFIX,
 } from "./constants";
 
 // Strips characters that have no business in a chat message/name: C0/C1
@@ -94,7 +95,11 @@ export function assertFileSize(file: File): File {
 // Firebase SDK - so this must be checked server-side too (mirrored in
 // database.rules.json).
 export function isTrustedImageUrl(url: string): boolean {
-  return url.startsWith(CLOUDINARY_URL_PREFIX) || url.startsWith(KLIPY_CDN_PREFIX);
+  return (
+    url.startsWith(CLOUDINARY_URL_PREFIX) ||
+    url.startsWith(KLIPY_CDN_PREFIX) ||
+    url.startsWith(DISCORD_CDN_PREFIX)
+  );
 }
 
 export function assertTrustedImageUrl(url: string): string {

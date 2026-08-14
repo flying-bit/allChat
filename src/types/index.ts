@@ -88,3 +88,11 @@ export interface VoicePresenceData {
   joinedAt: number;
   muted?: boolean;
 }
+
+// Keyed by a stable hash of fullUrl (see stableKeyForUrl in db.ts) -
+// RTDB keys can't contain the characters a URL is full of.
+export interface GifFavorite {
+  thumbUrl: string;
+  fullUrl: string;
+  addedAt: number;
+}
