@@ -15,6 +15,9 @@ interface MobileUIContextValue {
   userSettingsOpen: boolean;
   openUserSettings: () => void;
   closeUserSettings: () => void;
+  profileCardUid: string | null;
+  openProfileCard: (uid: string) => void;
+  closeProfileCard: () => void;
 }
 
 const MobileUIContext = createContext<MobileUIContextValue | null>(null);
@@ -23,6 +26,7 @@ export function MobileUIProvider({ children }: { children: ReactNode }) {
   const [channelDrawerOpen, setChannelDrawerOpen] = useState(false);
   const [memberListOpen, setMemberListOpen] = useState(false);
   const [userSettingsOpen, setUserSettingsOpen] = useState(false);
+  const [profileCardUid, setProfileCardUid] = useState<string | null>(null);
 
   const value: MobileUIContextValue = {
     channelDrawerOpen,
@@ -34,6 +38,9 @@ export function MobileUIProvider({ children }: { children: ReactNode }) {
     userSettingsOpen,
     openUserSettings: () => setUserSettingsOpen(true),
     closeUserSettings: () => setUserSettingsOpen(false),
+    profileCardUid,
+    openProfileCard: (uid: string) => setProfileCardUid(uid),
+    closeProfileCard: () => setProfileCardUid(null),
   };
 
   return <MobileUIContext.Provider value={value}>{children}</MobileUIContext.Provider>;

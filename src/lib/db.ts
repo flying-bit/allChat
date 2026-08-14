@@ -84,6 +84,53 @@ async function uploadImageToServer(folder: string, file: File): Promise<string> 
   return url;
 }
 
+// Re-hosts a picked KLIPY GIF on our own Cloudinary account - see
+// /api/upload-from-url's comment for why this can't just use KLIPY's URL
+// directly in imageUrl/avatarUrl/bannerUrl.
+export async function uploadGifFromUrl(folder: string, sourceUrl: string): Promise<string> {
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) throw new Error("Not signed in");
+  const res = await fetch("/api/upload-from-url", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ sourceUrl, folder }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "GIF upload failed");
+  }
+  const { url } = (await res.json()) as { url: string };
+  return url;
+}
+
+// ---------- GIF search (KLIPY, proxied server-side - see /api/gifs/*) ----------
+
+export async function searchGifs(query: string, page = 1): Promise<unknown> {
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) throw new Error("Not signed in");
+  const res = await fetch(`/api/gifs/search?q=${encodeURIComponent(query)}&page=${page}`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "GIF search failed");
+  }
+  return res.json();
+}
+
+export async function fetchTrendingGifs(page = 1): Promise<unknown> {
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) throw new Error("Not signed in");
+  const res = await fetch(`/api/gifs/trending?page=${page}`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "Couldn't load trending GIFs");
+  }
+  return res.json();
+}
+
 // ---------- Users ----------
 
 export function usernameLower(username: string) {
@@ -241,6 +288,27 @@ export async function updateUsername(uid: string, oldUsernameLower: string, newU
 export async function updateUserAvatar(uid: string, file: File) {
   const url = await uploadImageToServer(`avatars/${uid}`, file);
   await update(ref(rtdb, `users/${uid}`), { avatarUrl: url });
+  return url;
+}
+
+// `source` is either a File (own upload, incl. .gif) or a KLIPY GIF URL
+// (re-hosted on Cloudinary first) - either way this ends with a
+// res.cloudinary.com URL, same as the avatar/server-icon flows.
+export async function updateUserAvatarFromGif(uid: string, sourceUrl: string) {
+  const url = await uploadGifFromUrl(`avatars/${uid}`, sourceUrl);
+  await update(ref(rtdb, `users/${uid}`), { avatarUrl: url });
+  return url;
+}
+
+export async function updateUserBanner(uid: string, file: File) {
+  const url = await uploadImageToServer(`banners/${uid}`, file);
+  await update(ref(rtdb, `users/${uid}`), { bannerUrl: url });
+  return url;
+}
+
+export async function updateUserBannerFromGif(uid: string, sourceUrl: string) {
+  const url = await uploadGifFromUrl(`banners/${uid}`, sourceUrl);
+  await update(ref(rtdb, `users/${uid}`), { bannerUrl: url });
   return url;
 }
 

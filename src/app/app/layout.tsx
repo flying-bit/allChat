@@ -7,6 +7,7 @@ import { ServerRail } from "@/components/layout/ServerRail";
 import { ChannelSidebar } from "@/components/layout/ChannelSidebar";
 import { DmSidebar } from "@/components/layout/DmSidebar";
 import { UserSettingsModal } from "@/components/settings/UserSettingsModal";
+import { UserProfileCard } from "@/components/settings/UserProfileCard";
 import { MobileUIProvider } from "@/lib/mobile-ui-context";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -29,6 +30,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
         </div>
         <UserSettingsModal />
+        <UserProfileCard />
       </MobileUIProvider>
     </AuthGate>
   );

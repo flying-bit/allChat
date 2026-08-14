@@ -21,6 +21,7 @@ import {
   setDmReaction,
   setTyping,
   uploadPastedImage,
+  uploadGifFromUrl,
 } from "@/lib/db";
 import type { MessageData, ReactionMap } from "@/types";
 
@@ -86,6 +87,7 @@ export default function DmPage() {
       <MessageInput
         placeholder={`Message ${otherProfile.username}`}
         uploadImage={(file) => uploadPastedImage(dmId as string, file)}
+        uploadGif={(sourceUrl) => uploadGifFromUrl(`chatImages/${dmId}`, sourceUrl)}
         onSend={(content) => sendDmMessage(user.uid, otherUid, content)}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}

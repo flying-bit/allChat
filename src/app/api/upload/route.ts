@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { isValidFirebaseIdToken, bearerToken } from "@/lib/server/auth";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -12,7 +13,7 @@ const MAX_BYTES = 8 * 1024 * 1024;
 // Only these folders are ever passed by the client (db.ts's
 // uploadImageToServer callers) - reject anything else so a crafted request
 // can't steer uploads into an arbitrary Cloudinary folder path.
-const ALLOWED_FOLDER_PREFIXES = ["avatars/", "serverIcons/", "chatImages/"];
+const ALLOWED_FOLDER_PREFIXES = ["avatars/", "banners/", "serverIcons/", "chatImages/"];
 
 const ALLOWED_FORMATS = ["jpg", "jpeg", "png", "gif", "webp"] as const;
 
@@ -42,28 +43,6 @@ function sniffImageFormat(bytes: Uint8Array): (typeof ALLOWED_FORMATS)[number] |
   return null;
 }
 
-async function isValidFirebaseIdToken(idToken: string) {
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-  if (!apiKey) {
-    console.error("[/api/upload] Missing NEXT_PUBLIC_FIREBASE_API_KEY env var");
-    return false;
-  }
-  const res = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken }),
-    }
-  );
-  if (!res.ok) {
-    console.error("[/api/upload] Firebase token verification failed:", res.status, await res.text());
-    return false;
-  }
-  const data = await res.json();
-  return Array.isArray(data.users) && data.users.length > 0;
-}
-
 export async function POST(request: NextRequest) {
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
     console.error(
@@ -75,9 +54,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const authHeader = request.headers.get("authorization");
-  const idToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (!idToken || !(await isValidFirebaseIdToken(idToken))) {
+  const idToken = bearerToken(request);
+  if (!idToken || !(await isValidFirebaseIdToken(idToken, "[/api/upload]"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

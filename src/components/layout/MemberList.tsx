@@ -10,6 +10,7 @@ import type { StatusInfo } from "@/types";
 
 function MemberRow({ uid }: { uid: string }) {
   const profile = useUserProfile(uid);
+  const { openProfileCard } = useMobileUI();
   const [status, setStatus] = useState<StatusInfo | null>(null);
 
   useEffect(() => listenStatus(uid, setStatus), [uid]);
@@ -17,17 +18,19 @@ function MemberRow({ uid }: { uid: string }) {
   if (!profile) return null;
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
+      onClick={() => openProfileCard(uid)}
       layout
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
       transition={{ type: "spring", duration: 0.35, bounce: 0.3 }}
-      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-2"
+      className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface-2"
     >
       <Avatar name={profile.username} src={profile.avatarUrl} size={28} online={status?.online} />
       <span className="truncate text-foreground">{profile.username}</span>
-    </motion.div>
+    </motion.button>
   );
 }
 

@@ -5,6 +5,10 @@ export interface UserProfile {
   email: string;
   createdAt: number;
   avatarUrl?: string;
+  // Both this and avatarUrl can point to an animated .gif on Cloudinary -
+  // there's no separate "animated" flag, the browser just animates <img>
+  // GIFs natively.
+  bannerUrl?: string;
 }
 
 export interface StatusInfo {

@@ -10,6 +10,9 @@
         ".validate": "newData.hasChildren(['uid', 'username', 'usernameLower', 'email', 'createdAt']) && newData.child('uid').val() === $uid && newData.child('username').isString() && newData.child('username').val().length >= 3 && newData.child('username').val().length <= 32 && newData.child('usernameLower').isString() && newData.child('createdAt').isNumber() && (!data.exists() || newData.child('createdAt').val() === data.child('createdAt').val()) && (!data.exists() || newData.child('email').val() === data.child('email').val())",
         "avatarUrl": {
           ".validate": "newData.val().beginsWith('https://res.cloudinary.com/')"
+        },
+        "bannerUrl": {
+          ".validate": "newData.val().beginsWith('https://res.cloudinary.com/')"
         }
       }
     },

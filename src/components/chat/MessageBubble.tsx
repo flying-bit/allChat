@@ -5,6 +5,7 @@ import { animate } from "animejs";
 import { Reply, SmilePlus, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
+import { useMobileUI } from "@/lib/mobile-ui-context";
 import { clsx } from "@/lib/clsx";
 import { ReactionPicker } from "./ReactionPicker";
 import type { MessageData, ReactionMap } from "@/types";
@@ -77,6 +78,7 @@ export function MessageBubble({
   onReact: (emoji: string, active: boolean) => void;
 }) {
   const profile = useUserProfile(message.senderId);
+  const { openProfileCard } = useMobileUI();
   const ref = useRef<HTMLDivElement>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -101,11 +103,24 @@ export function MessageBubble({
       ref={ref}
       className="group relative flex gap-3 px-4 py-1.5 hover:bg-surface-2/50"
     >
-      <Avatar name={name} src={profile?.avatarUrl} size={36} />
+      <button
+        type="button"
+        onClick={() => openProfileCard(message.senderId)}
+        className="shrink-0 cursor-pointer"
+        aria-label={`View ${name}'s profile`}
+      >
+        <Avatar name={name} src={profile?.avatarUrl} size={36} />
+      </button>
       <div className="min-w-0 flex-1">
         {message.replyTo && <ReplyQuote replyTo={message.replyTo} />}
         <div className="flex items-baseline gap-2">
-          <span className={`text-sm font-semibold ${isOwn ? "text-accent" : ""}`}>{name}</span>
+          <button
+            type="button"
+            onClick={() => openProfileCard(message.senderId)}
+            className={`cursor-pointer text-sm font-semibold hover:underline ${isOwn ? "text-accent" : ""}`}
+          >
+            {name}
+          </button>
           <span className="text-[11px] text-muted">{time}</span>
         </div>
         {message.text && <p className="whitespace-pre-wrap break-words text-sm">{message.text}</p>}

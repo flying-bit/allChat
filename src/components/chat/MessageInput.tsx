@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
-import { Send, X, ImageIcon, Reply } from "lucide-react";
+import { Send, X, ImageIcon, Reply, Sticker } from "lucide-react";
 import { animate } from "animejs";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
+import { GifPicker } from "./GifPicker";
 import type { MessageData } from "@/types";
 
 function ReplyChip({ replyTo, onCancel }: { replyTo: MessageData; onCancel: () => void }) {
@@ -38,9 +39,20 @@ function ReplyChip({ replyTo, onCancel }: { replyTo: MessageData; onCancel: () =
   );
 }
 
+// A pending attachment is either a locally-picked file (paste or file
+// input - uploaded via `uploadImage` at send time) or a GIF picked from
+// KLIPY (not yet re-hosted on Cloudinary - uploaded via `uploadGif` at send
+// time). Deferring both until send, rather than uploading on pick, matches
+// the existing paste/attach flow and lets the user back out with no
+// leftover upload.
+type PendingAttachment =
+  | { kind: "file"; file: File; previewUrl: string }
+  | { kind: "gif"; sourceUrl: string; previewUrl: string };
+
 export function MessageInput({
   onSend,
   uploadImage,
+  uploadGif,
   placeholder,
   onTypingChange,
   replyTo,
@@ -48,15 +60,15 @@ export function MessageInput({
 }: {
   onSend: (content: { text?: string; imageUrl?: string; replyTo?: MessageData }) => Promise<void>;
   uploadImage: (file: File) => Promise<string>;
+  uploadGif: (sourceUrl: string) => Promise<string>;
   placeholder: string;
   onTypingChange?: (isTyping: boolean) => void;
   replyTo?: MessageData | null;
   onCancelReply?: () => void;
 }) {
   const [text, setText] = useState("");
-  const [pendingImage, setPendingImage] = useState<{ file: File; previewUrl: string } | null>(
-    null
-  );
+  const [pending, setPending] = useState<PendingAttachment | null>(null);
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -97,8 +109,13 @@ export function MessageInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function clearPending() {
+    if (pending?.kind === "file") URL.revokeObjectURL(pending.previewUrl);
+    setPending(null);
+  }
+
   function selectImageFile(file: File) {
-    setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
+    setPending({ kind: "file", file, previewUrl: URL.createObjectURL(file) });
   }
 
   function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>) {
@@ -125,21 +142,18 @@ export function MessageInput({
 
   async function handleSend() {
     if (sending) return;
-    if (!text.trim() && !pendingImage) return;
+    if (!text.trim() && !pending) return;
     setSending(true);
     setError(null);
     try {
       let imageUrl: string | undefined;
-      if (pendingImage) {
-        imageUrl = await uploadImage(pendingImage.file);
+      if (pending) {
+        imageUrl = pending.kind === "file" ? await uploadImage(pending.file) : await uploadGif(pending.sourceUrl);
       }
       await onSend({ text: text.trim() || undefined, imageUrl, replyTo: replyTo ?? undefined });
       setText("");
       stopTyping();
-      if (pendingImage) {
-        URL.revokeObjectURL(pendingImage.previewUrl);
-        setPendingImage(null);
-      }
+      if (pending) clearPending();
       onCancelReply?.();
       inputRef.current?.focus();
       if (sendIconRef.current) {
@@ -154,7 +168,7 @@ export function MessageInput({
     } catch (err) {
       console.error("Failed to send message:", err);
       const detail = err instanceof Error ? err.message : String(err);
-      setError(pendingImage ? `Couldn't upload the image: ${detail}` : `Couldn't send the message: ${detail}`);
+      setError(pending ? `Couldn't upload the image: ${detail}` : `Couldn't send the message: ${detail}`);
     } finally {
       setSending(false);
     }
@@ -173,7 +187,7 @@ export function MessageInput({
         {replyTo && <ReplyChip key="reply" replyTo={replyTo} onCancel={() => onCancelReply?.()} />}
       </AnimatePresence>
       <AnimatePresence>
-        {pendingImage && (
+        {pending && (
           <motion.div
             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
             animate={{ opacity: 1, height: "auto", marginBottom: 8 }}
@@ -183,17 +197,14 @@ export function MessageInput({
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={pendingImage.previewUrl}
+              src={pending.previewUrl}
               alt="preview"
               className="h-16 w-16 rounded object-cover"
             />
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => {
-                URL.revokeObjectURL(pendingImage.previewUrl);
-                setPendingImage(null);
-              }}
+              onClick={clearPending}
               className="rounded p-1 text-muted hover:text-danger cursor-pointer"
             >
               <X size={16} />
@@ -206,9 +217,17 @@ export function MessageInput({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           className="mb-1 shrink-0 cursor-pointer rounded-md p-0.5 text-muted hover:text-foreground"
-          aria-label="Attach an image"
+          aria-label="Attach an image or GIF"
         >
           <ImageIcon size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setGifPickerOpen(true)}
+          className="mb-1 shrink-0 cursor-pointer rounded-md p-0.5 text-muted hover:text-foreground"
+          aria-label="Search a GIF"
+        >
+          <Sticker size={18} />
         </button>
         <input
           ref={fileInputRef}
@@ -231,7 +250,7 @@ export function MessageInput({
         <Button
           onClick={handleSend}
           loading={sending}
-          disabled={!text.trim() && !pendingImage}
+          disabled={!text.trim() && !pending}
           className="!h-8 !w-8 !p-0"
         >
           <span ref={sendIconRef} className="inline-flex">
@@ -258,10 +277,18 @@ export function MessageInput({
             animate={{ opacity: 1 }}
             className="mt-1 text-[11px] text-muted"
           >
-            Tap the image icon to attach a photo, or paste one with Ctrl+V.
+            Attach a photo/GIF, search a GIF, or paste an image with Ctrl+V.
           </motion.p>
         )}
       </AnimatePresence>
+      <GifPicker
+        open={gifPickerOpen}
+        onClose={() => setGifPickerOpen(false)}
+        onPick={(sourceUrl, previewUrl) => {
+          setPending({ kind: "gif", sourceUrl, previewUrl });
+          setGifPickerOpen(false);
+        }}
+      />
     </div>
   );
 }
