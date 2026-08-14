@@ -1,13 +1,6 @@
 "use client";
 
-// Discord's own default-avatar palette
-const COLORS = ["#5865F2", "#23A55A", "#F0B232", "#EB459E", "#DA373C", "#9C84EF"];
-
-function colorFor(seed: string) {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  return COLORS[hash % COLORS.length];
-}
+import { gradientFor } from "@/lib/color";
 
 export function Avatar({
   name,
@@ -26,7 +19,7 @@ export function Avatar({
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
     .join("") || "?";
-  const bg = colorFor(name || "?");
+  const background = gradientFor(name || "?");
 
   return (
     <div className="relative inline-block shrink-0" style={{ width: size, height: size }}>
@@ -40,8 +33,8 @@ export function Avatar({
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center rounded-full font-semibold text-white select-none"
-          style={{ backgroundColor: bg, fontSize: size * 0.4 }}
+          className="flex h-full w-full items-center justify-center rounded-full font-semibold text-white shadow-sm select-none"
+          style={{ background, fontSize: size * 0.4 }}
         >
           {initials}
         </div>

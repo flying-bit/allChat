@@ -29,7 +29,7 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#5865F2",
+          background: "linear-gradient(135deg, #6875F5 0%, #4752C4 100%)",
         }}
       >
         <div
@@ -45,6 +45,7 @@ export default function AppleIcon() {
             borderTopRightRadius: 34,
             borderBottomRightRadius: 34,
             borderBottomLeftRadius: 8,
+            boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
           }}
         >
           <Dot />

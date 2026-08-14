@@ -7,22 +7,25 @@ import { motion } from "motion/react";
 import { TopBar } from "@/components/layout/TopBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { MessageInput } from "@/components/chat/MessageInput";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { VoiceChannelPanel } from "@/components/voice/VoiceChannelPanel";
 import { MemberList } from "@/components/layout/MemberList";
 import { useAuth } from "@/lib/auth-context";
 import { useMobileUI } from "@/lib/mobile-ui-context";
 import {
+  clearTyping,
   listenChannelMeta,
   listenChannelMessages,
   markChannelRead,
   sendChannelMessage,
+  setTyping,
   uploadPastedImage,
 } from "@/lib/db";
 import type { ChannelData, MessageData } from "@/types";
 
 export default function ChannelPage() {
   const { serverId, channelId } = useParams<{ serverId: string; channelId: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toggleMemberList } = useMobileUI();
   const [channel, setChannel] = useState<ChannelData | null>(null);
   const [messages, setMessages] = useState<MessageData[]>([]);
@@ -92,10 +95,16 @@ export default function ChannelPage() {
           right={memberListToggle}
         />
         <MessageList messages={messages} currentUid={user.uid} />
+        <TypingIndicator threadId={channelId} currentUid={user.uid} />
         <MessageInput
           placeholder={`Message #${channel.name}`}
           uploadImage={(file) => uploadPastedImage(channelId, file)}
           onSend={(content) => sendChannelMessage(channelId, user.uid, content)}
+          onTypingChange={(isTyping) => {
+            if (!profile) return;
+            if (isTyping) setTyping(channelId, user.uid, profile.username);
+            else clearTyping(channelId, user.uid);
+          }}
         />
       </motion.div>
       <MemberList serverId={serverId} />

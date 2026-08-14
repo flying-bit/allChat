@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
 import { Send, X, ImageIcon } from "lucide-react";
 import { animate } from "animejs";
 import { AnimatePresence, motion } from "motion/react";
@@ -10,10 +10,12 @@ export function MessageInput({
   onSend,
   uploadImage,
   placeholder,
+  onTypingChange,
 }: {
   onSend: (content: { text?: string; imageUrl?: string }) => Promise<void>;
   uploadImage: (file: File) => Promise<string>;
   placeholder: string;
+  onTypingChange?: (isTyping: boolean) => void;
 }) {
   const [text, setText] = useState("");
   const [pendingImage, setPendingImage] = useState<{ file: File; previewUrl: string } | null>(
@@ -23,6 +25,36 @@ export function MessageInput({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const sendIconRef = useRef<HTMLSpanElement>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
+
+  function stopTyping() {
+    if (typingTimeoutRef.current) {
+      window.clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    onTypingChange?.(false);
+  }
+
+  function handleTextChange(value: string) {
+    setText(value);
+    if (!onTypingChange) return;
+    if (!value.trim()) {
+      stopTyping();
+      return;
+    }
+    onTypingChange(true);
+    if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = window.setTimeout(stopTyping, 3000);
+  }
+
+  // Stop signalling "typing" if the input unmounts mid-type (channel/DM
+  // switch, navigating away) - the `key={channelId}` on the parent page
+  // remounts this component per thread, so this always fires for the
+  // thread being left.
+  useEffect(() => {
+    return () => stopTyping();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>) {
     const items = e.clipboardData?.items;
@@ -51,6 +83,7 @@ export function MessageInput({
       }
       await onSend({ text: text.trim() || undefined, imageUrl });
       setText("");
+      stopTyping();
       if (pendingImage) {
         URL.revokeObjectURL(pendingImage.previewUrl);
         setPendingImage(null);
@@ -120,7 +153,7 @@ export function MessageInput({
         <textarea
           ref={inputRef}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => handleTextChange(e.target.value)}
           onPaste={handlePaste}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}

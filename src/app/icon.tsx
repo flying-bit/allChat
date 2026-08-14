@@ -29,7 +29,7 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#5865F2",
+          background: "linear-gradient(135deg, #6875F5 0%, #4752C4 100%)",
           borderRadius: 8,
         }}
       >
@@ -46,6 +46,7 @@ export default function Icon() {
             borderTopRightRadius: 6,
             borderBottomRightRadius: 6,
             borderBottomLeftRadius: 1.5,
+            boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
           }}
         >
           <Dot />

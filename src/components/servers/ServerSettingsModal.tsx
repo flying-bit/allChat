@@ -1,27 +1,33 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import { ImagePlus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ImagePlus, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { updateServerName, updateServerIcon } from "@/lib/db";
-import type { ServerData } from "@/types";
+import { updateServerName, updateServerIcon, deleteServer } from "@/lib/db";
+import type { ChannelData, ServerData } from "@/types";
 
 export function ServerSettingsModal({
   open,
   onClose,
   server,
+  channels,
 }: {
   open: boolean;
   onClose: () => void;
   server: ServerData;
+  channels: ChannelData[];
 }) {
+  const router = useRouter();
   const [name, setName] = useState(server.name);
   const [preview, setPreview] = useState<string | null>(null);
   const [iconFile, setIconFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset the form fields whenever the modal transitions to open, so a
@@ -36,6 +42,7 @@ export function ServerSettingsModal({
       setPreview(null);
       setIconFile(null);
       setError(null);
+      setConfirmingDelete(false);
     }
   }
 
@@ -69,6 +76,23 @@ export function ServerSettingsModal({
       setError("Couldn't save, try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await deleteServer(
+        server.ownerId,
+        server.id,
+        server.inviteCode,
+        channels.map((c) => c.id)
+      );
+      onClose();
+      router.push("/app/friends");
+    } catch {
+      setError("Couldn't delete the server, try again.");
+      setDeleting(false);
     }
   }
 
@@ -117,6 +141,49 @@ export function ServerSettingsModal({
           Save
         </Button>
       </form>
+
+      <div className="mt-6 border-t border-border pt-4">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-danger">
+          Danger zone
+        </h3>
+        {!confirmingDelete ? (
+          <Button
+            type="button"
+            variant="danger"
+            className="w-full"
+            onClick={() => setConfirmingDelete(true)}
+          >
+            <Trash2 size={16} /> Delete server
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-2 rounded-lg border border-danger/40 bg-danger/10 p-3">
+            <p className="text-sm">
+              Permanently delete <strong>{server.name}</strong>? All of its channels and
+              messages will be gone for everyone. This can&apos;t be undone.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setConfirmingDelete(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                className="flex-1"
+                onClick={handleDelete}
+                loading={deleting}
+              >
+                Delete forever
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </Modal>
   );
 }

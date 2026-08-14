@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { Logo } from "@/components/ui/Logo";
 
 export default function HomePage() {
   const { user, loading } = useAuth();
@@ -14,8 +15,9 @@ export default function HomePage() {
   }, [user, loading, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-muted">
-      Loading...
+    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background text-muted">
+      <Logo size={44} />
+      <span className="text-sm">Loading...</span>
     </div>
   );
 }

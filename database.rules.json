@@ -122,6 +122,15 @@
       }
     },
 
+    "typing": {
+      "$threadId": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+
     "status": {
       "$uid": {
         ".read": "auth != null",

@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { Logo } from "@/components/ui/Logo";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -14,8 +15,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-muted">
-        Loading...
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background text-muted">
+        <Logo size={44} />
+        <span className="text-sm">Loading...</span>
       </div>
     );
   }

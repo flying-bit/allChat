@@ -265,6 +265,34 @@ export async function updateServerIcon(serverId: string, file: File) {
   return url;
 }
 
+// Members other than the owner keep a dangling `userServers/{uid}/{serverId}`
+// pointer after this - security rules only let each user write their own
+// entry, so a full cascade would need a Cloud Function. That's harmless:
+// once `servers/{serverId}` is gone, listenServer resolves to null and
+// useUserServers filters the stale id out client-side.
+export async function deleteServer(
+  ownerUid: string,
+  serverId: string,
+  inviteCode: string | undefined,
+  channelIds: string[]
+) {
+  const updates: Record<string, unknown> = {
+    [`servers/${serverId}`]: null,
+    [`serverChannels/${serverId}`]: null,
+    [`serverCategories/${serverId}`]: null,
+    [`userServers/${ownerUid}/${serverId}`]: null,
+  };
+  if (inviteCode) updates[`serverInvites/${inviteCode}`] = null;
+  // Voice presence isn't included here: security rules only grant write
+  // access per-participant (`voicePresence/{channelId}/{uid}`), not at the
+  // channel level, so bulk-clearing it would reject the whole atomic
+  // update. It's ephemeral and self-clears via onDisconnect anyway.
+  for (const channelId of channelIds) {
+    updates[`channelMessages/${channelId}`] = null;
+  }
+  await update(ref(rtdb), updates);
+}
+
 export function listenServerChannels(serverId: string, cb: (channels: ChannelData[]) => void) {
   const r = ref(rtdb, `serverChannels/${serverId}`);
   const handler = onValue(r, (snap) => {
@@ -631,6 +659,31 @@ export function listenVoicePresence(
   const handler = onValue(r, (snap) => {
     const val = snap.val() as Record<string, VoicePresenceData> | null;
     cb(val ? Object.entries(val).map(([uid, v]) => ({ uid, ...v })) : []);
+  });
+  return () => off(r, "value", handler);
+}
+
+// ---------- Typing indicators ----------
+// `threadId` is a channelId for server text channels, or a dmId for DMs.
+
+export function setTyping(threadId: string, uid: string, username: string) {
+  const r = ref(rtdb, `typing/${threadId}/${uid}`);
+  onDisconnect(r).remove();
+  void set(r, username);
+}
+
+export function clearTyping(threadId: string, uid: string) {
+  void remove(ref(rtdb, `typing/${threadId}/${uid}`));
+}
+
+export function listenTyping(
+  threadId: string,
+  cb: (users: { uid: string; username: string }[]) => void
+) {
+  const r = ref(rtdb, `typing/${threadId}`);
+  const handler = onValue(r, (snap) => {
+    const val = snap.val() as Record<string, string> | null;
+    cb(val ? Object.entries(val).map(([uid, username]) => ({ uid, username })) : []);
   });
   return () => off(r, "value", handler);
 }

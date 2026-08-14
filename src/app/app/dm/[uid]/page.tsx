@@ -6,15 +6,24 @@ import { motion } from "motion/react";
 import { TopBar } from "@/components/layout/TopBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { MessageInput } from "@/components/chat/MessageInput";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/lib/auth-context";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
-import { dmIdFor, listenDmMessages, markDmRead, sendDmMessage, uploadPastedImage } from "@/lib/db";
+import {
+  clearTyping,
+  dmIdFor,
+  listenDmMessages,
+  markDmRead,
+  sendDmMessage,
+  setTyping,
+  uploadPastedImage,
+} from "@/lib/db";
 import type { MessageData } from "@/types";
 
 export default function DmPage() {
   const { uid: otherUid } = useParams<{ uid: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const otherProfile = useUserProfile(otherUid);
   const [messages, setMessages] = useState<MessageData[]>([]);
 
@@ -45,10 +54,16 @@ export default function DmPage() {
         title={otherProfile.username}
       />
       <MessageList messages={messages} currentUid={user.uid} />
+      <TypingIndicator threadId={dmId as string} currentUid={user.uid} />
       <MessageInput
         placeholder={`Message ${otherProfile.username}`}
         uploadImage={(file) => uploadPastedImage(dmId as string, file)}
         onSend={(content) => sendDmMessage(user.uid, otherUid, content)}
+        onTypingChange={(isTyping) => {
+          if (!profile) return;
+          if (isTyping) setTyping(dmId as string, user.uid, profile.username);
+          else clearTyping(dmId as string, user.uid);
+        }}
       />
     </motion.div>
   );

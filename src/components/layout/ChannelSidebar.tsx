@@ -392,7 +392,12 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
           inviteCode={server.inviteCode}
           isOwner={isOwner}
         />
-        <ServerSettingsModal open={showSettings} onClose={() => setShowSettings(false)} server={server} />
+        <ServerSettingsModal
+          open={showSettings}
+          onClose={() => setShowSettings(false)}
+          server={server}
+          channels={channels}
+        />
       </div>
     </>
   );
