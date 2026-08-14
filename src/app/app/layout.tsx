@@ -16,7 +16,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <AuthGate>
       <MobileUIProvider>
-        <div className="flex h-screen w-screen overflow-hidden bg-background">
+        {/* h-dvh, not h-screen (100vh): mobile Chrome/Samsung Internet don't
+            subtract their address bar / nav bar from 100vh, so a h-screen
+            shell renders taller than what's actually visible - with
+            overflow-hidden here, that pushed ServerRail's bottom-most items
+            (the profile/settings button) off-screen with no way to reach
+            them. 100dvh tracks the real visible viewport as chrome
+            shows/hides. */}
+        <div className="flex h-dvh w-screen overflow-hidden bg-background">
           <ServerRail />
           {serverId ? <ChannelSidebar key={serverId} serverId={serverId} /> : <DmSidebar />}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
