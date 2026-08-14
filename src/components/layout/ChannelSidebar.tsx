@@ -3,15 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { usePathname } from "next/navigation";
-import {
-  Hash,
-  Volume2,
-  UserPlus,
-  Plus,
-  ChevronDown,
-  ChevronRight,
-  Settings,
-} from "lucide-react";
+import { Hash, Volume2, UserPlus, Plus, ChevronDown, Settings } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/lib/auth-context";
 import {
   listenServer,
@@ -26,6 +19,9 @@ import { ServerSettingsModal } from "@/components/servers/ServerSettingsModal";
 import { Avatar } from "@/components/ui/Avatar";
 import { useMobileUI } from "@/lib/mobile-ui-context";
 
+const iconTap = { scale: 0.88 };
+const iconHover = { scale: 1.12 };
+
 function ChannelLink({
   serverId,
   channel,
@@ -38,16 +34,18 @@ function ChannelLink({
   onNavigate: () => void;
 }) {
   return (
-    <Link
-      href={`/app/servers/${serverId}/channels/${channel.id}`}
-      onClick={onNavigate}
-      className={`mb-0.5 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
-        active ? "bg-surface-2 text-foreground" : "text-muted hover:bg-surface-2 hover:text-foreground"
-      }`}
-    >
-      {channel.type === "voice" ? <Volume2 size={16} /> : <Hash size={16} />}
-      <span className="truncate">{channel.name}</span>
-    </Link>
+    <motion.div whileHover={{ x: 3 }} transition={{ type: "spring", duration: 0.3, bounce: 0.4 }}>
+      <Link
+        href={`/app/servers/${serverId}/channels/${channel.id}`}
+        onClick={onNavigate}
+        className={`mb-0.5 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+          active ? "bg-surface-2 text-foreground" : "text-muted hover:bg-surface-2 hover:text-foreground"
+        }`}
+      >
+        {channel.type === "voice" ? <Volume2 size={16} /> : <Hash size={16} />}
+        <span className="truncate">{channel.name}</span>
+      </Link>
+    </motion.div>
   );
 }
 
@@ -70,7 +68,14 @@ function AddChannelForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-1 mb-2 flex flex-col gap-1 rounded-md border border-border p-2">
+    <motion.form
+      initial={{ opacity: 0, scale: 0.96, y: -6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.96, y: -6 }}
+      transition={{ type: "spring", duration: 0.25, bounce: 0.3 }}
+      onSubmit={handleSubmit}
+      className="mt-1 mb-2 flex flex-col gap-1 rounded-md border border-border p-2"
+    >
       <input
         autoFocus
         value={name}
@@ -82,7 +87,7 @@ function AddChannelForm({
         <button
           type="button"
           onClick={() => setType("text")}
-          className={`flex-1 cursor-pointer rounded px-2 py-1 ${
+          className={`flex-1 cursor-pointer rounded px-2 py-1 transition-colors ${
             type === "text" ? "bg-accent text-accent-foreground" : "bg-surface-2"
           }`}
         >
@@ -91,7 +96,7 @@ function AddChannelForm({
         <button
           type="button"
           onClick={() => setType("voice")}
-          className={`flex-1 cursor-pointer rounded px-2 py-1 ${
+          className={`flex-1 cursor-pointer rounded px-2 py-1 transition-colors ${
             type === "voice" ? "bg-accent text-accent-foreground" : "bg-surface-2"
           }`}
         >
@@ -113,7 +118,7 @@ function AddChannelForm({
           Cancel
         </button>
       </div>
-    </form>
+    </motion.form>
   );
 }
 
@@ -193,21 +198,25 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {isOwner && (
-              <button
+              <motion.button
+                whileHover={iconHover}
+                whileTap={iconTap}
                 onClick={() => setShowSettings(true)}
                 className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-accent cursor-pointer"
                 title="Server settings"
               >
                 <Settings size={18} />
-              </button>
+              </motion.button>
             )}
-            <button
+            <motion.button
+              whileHover={iconHover}
+              whileTap={iconTap}
               onClick={() => setShowInvite(true)}
               className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-accent cursor-pointer"
               title="Invite people"
             >
               <UserPlus size={18} />
-            </button>
+            </motion.button>
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
@@ -220,20 +229,28 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
               onNavigate={closeChannelDrawer}
             />
           ))}
-          {isOwner &&
-            (addingChannelFor === "uncategorized" ? (
-              <AddChannelForm
-                onCancel={() => setAddingChannelFor(null)}
-                onSubmit={(name, type) => createChannel(serverId, name, type, channels.length).then(() => {})}
-              />
-            ) : (
-              <button
-                onClick={() => setAddingChannelFor("uncategorized")}
-                className="mt-1 mb-2 flex w-full cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-foreground"
-              >
-                <Plus size={14} /> Add channel
-              </button>
-            ))}
+          {isOwner && (
+            <AnimatePresence mode="wait" initial={false}>
+              {addingChannelFor === "uncategorized" ? (
+                <AddChannelForm
+                  key="form"
+                  onCancel={() => setAddingChannelFor(null)}
+                  onSubmit={(name, type) =>
+                    createChannel(serverId, name, type, channels.length).then(() => {})
+                  }
+                />
+              ) : (
+                <motion.button
+                  key="button"
+                  whileHover={{ x: 2 }}
+                  onClick={() => setAddingChannelFor("uncategorized")}
+                  className="mt-1 mb-2 flex w-full cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-foreground"
+                >
+                  <Plus size={14} /> Add channel
+                </motion.button>
+              )}
+            </AnimatePresence>
+          )}
 
           {grouped.map(({ category, items }) => {
             const isCollapsed = collapsed.has(category.id);
@@ -244,83 +261,116 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
                     onClick={() => toggleCollapse(category.id)}
                     className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted hover:text-foreground"
                   >
-                    {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                    <motion.span
+                      animate={{ rotate: isCollapsed ? -90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="inline-flex shrink-0"
+                    >
+                      <ChevronDown size={12} />
+                    </motion.span>
                     <span className="truncate">{category.name}</span>
                   </button>
                   {isOwner && (
-                    <button
+                    <motion.button
+                      whileHover={iconHover}
+                      whileTap={iconTap}
                       onClick={() => setAddingChannelFor(category.id)}
                       className="cursor-pointer rounded p-0.5 text-muted hover:text-accent"
                       title="Add a channel to this category"
                     >
                       <Plus size={14} />
-                    </button>
+                    </motion.button>
                   )}
                 </div>
-                {!isCollapsed && (
-                  <div className="mt-0.5">
-                    {items.map((c) => (
-                      <ChannelLink
-                        key={c.id}
-                        serverId={serverId}
-                        channel={c}
-                        active={activeChannelId === c.id}
-                        onNavigate={closeChannelDrawer}
-                      />
-                    ))}
-                    {isOwner && addingChannelFor === category.id && (
-                      <AddChannelForm
-                        onCancel={() => setAddingChannelFor(null)}
-                        onSubmit={(name, type) =>
-                          createChannel(serverId, name, type, items.length, category.id).then(() => {})
-                        }
-                      />
-                    )}
-                  </div>
-                )}
+                <AnimatePresence initial={false}>
+                  {!isCollapsed && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-0.5">
+                        {items.map((c) => (
+                          <ChannelLink
+                            key={c.id}
+                            serverId={serverId}
+                            channel={c}
+                            active={activeChannelId === c.id}
+                            onNavigate={closeChannelDrawer}
+                          />
+                        ))}
+                        {isOwner && addingChannelFor === category.id && (
+                          <AddChannelForm
+                            onCancel={() => setAddingChannelFor(null)}
+                            onSubmit={(name, type) =>
+                              createChannel(serverId, name, type, items.length, category.id).then(
+                                () => {}
+                              )
+                            }
+                          />
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })}
 
-          {isOwner &&
-            (addingCategory ? (
-              <form onSubmit={handleAddCategory} className="mt-2 flex flex-col gap-1 rounded-md border border-border p-2">
-                <input
-                  autoFocus
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="CATEGORY NAME"
-                  className="rounded border border-border bg-background px-2 py-1 text-sm outline-none focus:border-accent"
-                />
-                <div className="flex gap-1">
-                  <button
-                    type="submit"
-                    className="flex-1 cursor-pointer rounded bg-accent px-2 py-1 text-xs font-medium text-accent-foreground"
-                  >
-                    Add
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAddingCategory(false)}
-                    className="cursor-pointer rounded px-2 py-1 text-xs text-muted hover:bg-surface-2"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <button
-                onClick={() => setAddingCategory(true)}
-                className="mt-2 flex w-full cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-foreground"
-              >
-                <Plus size={14} /> Add category
-              </button>
-            ))}
+          {isOwner && (
+            <AnimatePresence mode="wait" initial={false}>
+              {addingCategory ? (
+                <motion.form
+                  key="form"
+                  initial={{ opacity: 0, scale: 0.96, y: -6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96, y: -6 }}
+                  transition={{ type: "spring", duration: 0.25, bounce: 0.3 }}
+                  onSubmit={handleAddCategory}
+                  className="mt-2 flex flex-col gap-1 rounded-md border border-border p-2"
+                >
+                  <input
+                    autoFocus
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="CATEGORY NAME"
+                    className="rounded border border-border bg-background px-2 py-1 text-sm outline-none focus:border-accent"
+                  />
+                  <div className="flex gap-1">
+                    <button
+                      type="submit"
+                      className="flex-1 cursor-pointer rounded bg-accent px-2 py-1 text-xs font-medium text-accent-foreground"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAddingCategory(false)}
+                      className="cursor-pointer rounded px-2 py-1 text-xs text-muted hover:bg-surface-2"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.form>
+              ) : (
+                <motion.button
+                  key="button"
+                  whileHover={{ x: 2 }}
+                  onClick={() => setAddingCategory(true)}
+                  className="mt-2 flex w-full cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-foreground"
+                >
+                  <Plus size={14} /> Add category
+                </motion.button>
+              )}
+            </AnimatePresence>
+          )}
         </div>
         {profile && (
           <button
             onClick={openUserSettings}
-            className="flex cursor-pointer items-center gap-2 border-t border-border p-2 text-left hover:bg-surface-2"
+            className="flex cursor-pointer items-center gap-2 border-t border-border p-2 text-left hover:bg-surface-2 transition-colors"
           >
             <Avatar name={profile.username} src={profile.avatarUrl} size={32} />
             <span className="truncate text-sm font-medium">{profile.username}</span>

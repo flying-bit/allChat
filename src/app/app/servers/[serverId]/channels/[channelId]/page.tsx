@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Hash, Volume2, Users } from "lucide-react";
+import { motion } from "motion/react";
 import { TopBar } from "@/components/layout/TopBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { MessageInput } from "@/components/chat/MessageInput";
@@ -49,14 +50,20 @@ export default function ChannelPage() {
   if (channel.type === "voice") {
     return (
       <div className="flex min-h-0 min-w-0 flex-1">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <motion.div
+          key={channelId}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.15 }}
+          className="flex min-h-0 min-w-0 flex-1 flex-col"
+        >
           <TopBar
             icon={<Volume2 size={18} className="text-muted" />}
             title={channel.name}
             right={memberListToggle}
           />
           <VoiceChannelPanel channelId={channelId} />
-        </div>
+        </motion.div>
         <MemberList serverId={serverId} />
       </div>
     );
@@ -64,7 +71,13 @@ export default function ChannelPage() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <motion.div
+        key={channelId}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.15 }}
+        className="flex min-h-0 min-w-0 flex-1 flex-col"
+      >
         <TopBar
           icon={<Hash size={18} className="text-muted" />}
           title={channel.name}
@@ -76,7 +89,7 @@ export default function ChannelPage() {
           uploadImage={(file) => uploadPastedImage(channelId, file)}
           onSend={(content) => sendChannelMessage(channelId, user.uid, content)}
         />
-      </div>
+      </motion.div>
       <MemberList serverId={serverId} />
     </div>
   );

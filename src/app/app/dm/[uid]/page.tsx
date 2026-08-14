@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { motion } from "motion/react";
 import { TopBar } from "@/components/layout/TopBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { MessageInput } from "@/components/chat/MessageInput";
@@ -27,7 +28,13 @@ export default function DmPage() {
   if (!user || !otherProfile) return <div className="flex-1" />;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <motion.div
+      key={otherUid}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
+      className="flex min-h-0 flex-1 flex-col"
+    >
       <TopBar
         icon={<Avatar name={otherProfile.username} src={otherProfile.avatarUrl} size={28} />}
         title={otherProfile.username}
@@ -38,6 +45,6 @@ export default function DmPage() {
         uploadImage={(file) => uploadPastedImage(dmId as string, file)}
         onSend={(content) => sendDmMessage(user.uid, otherUid, content)}
       />
-    </div>
+    </motion.div>
   );
 }

@@ -14,9 +14,10 @@ export function MessageBubble({ message, isOwn }: { message: MessageData; isOwn:
     if (!ref.current) return;
     animate(ref.current, {
       opacity: [0, 1],
-      translateY: [8, 0],
-      duration: 220,
-      ease: "outQuad",
+      translateY: [10, 0],
+      scale: [0.98, 1],
+      duration: 320,
+      ease: "outQuint",
     });
   }, []);
 

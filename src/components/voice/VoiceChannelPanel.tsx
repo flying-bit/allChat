@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { Mic, MicOff, PhoneOff, Volume2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
@@ -25,7 +25,14 @@ function ParticipantTile({
   const profile = useUserProfile(uid);
   const name = profile?.username ?? "...";
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-surface p-4">
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.85, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.85, y: 10 }}
+      transition={{ type: "spring", duration: 0.4, bounce: 0.35 }}
+      className="flex flex-col items-center gap-2 rounded-xl border border-border bg-surface p-4"
+    >
       <motion.div
         animate={{
           boxShadow: `0 0 0 ${4 + level * 10}px rgba(255,143,0,${0.15 + level * 0.35})`,
@@ -39,7 +46,7 @@ function ParticipantTile({
         {muted && <MicOff size={14} className="text-danger" />}
         {name}
       </span>
-    </div>
+    </motion.div>
   );
 }
 
@@ -186,27 +193,37 @@ export function VoiceChannelPanel({ channelId }: { channelId: string }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-8">
       {!joined ? (
-        <div className="flex flex-col items-center gap-3">
+        <motion.div
+          key="prompt"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+          className="flex flex-col items-center gap-3"
+        >
           <Volume2 size={40} className="text-muted" />
           <p className="text-sm text-muted">
             {members.length}/{MAX_VC_USERS} in this channel
           </p>
           {full && <p className="text-sm text-danger">Channel is full (4/4).</p>}
           <Button onClick={handleJoin}>Join Voice Channel</Button>
-        </div>
+        </motion.div>
       ) : (
         <>
           <div className="grid w-full max-w-xl grid-cols-2 gap-4">
-            {meMember && (
-              <ParticipantTile
-                uid={meMember.uid}
-                level={muted ? 0 : levels[meMember.uid] ?? 0}
-                muted={muted}
-              />
-            )}
-            {otherMembers.map((m) => (
-              <ParticipantTile key={m.uid} uid={m.uid} level={levels[m.uid] ?? 0} />
-            ))}
+            <AnimatePresence initial={false}>
+              {meMember && (
+                <ParticipantTile
+                  key={meMember.uid}
+                  uid={meMember.uid}
+                  level={muted ? 0 : levels[meMember.uid] ?? 0}
+                  muted={muted}
+                />
+              )}
+              {otherMembers.map((m) => (
+                <ParticipantTile key={m.uid} uid={m.uid} level={levels[m.uid] ?? 0} />
+              ))}
+            </AnimatePresence>
           </div>
           <div className="flex gap-3">
             <Button variant={muted ? "danger" : "outline"} onClick={toggleMute}>

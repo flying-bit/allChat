@@ -2,6 +2,8 @@
 
 import { useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
 import { Send, X, ImageIcon } from "lucide-react";
+import { animate } from "animejs";
+import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/Button";
 
 export function MessageInput({
@@ -20,6 +22,7 @@ export function MessageInput({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const sendIconRef = useRef<HTMLSpanElement>(null);
 
   function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>) {
     const items = e.clipboardData?.items;
@@ -53,6 +56,15 @@ export function MessageInput({
         setPendingImage(null);
       }
       inputRef.current?.focus();
+      if (sendIconRef.current) {
+        animate(sendIconRef.current, {
+          translateX: [0, 16, 0],
+          translateY: [0, -8, 0],
+          opacity: [1, 0.3, 1],
+          duration: 400,
+          ease: "outBack",
+        });
+      }
     } catch (err) {
       console.error("Failed to send message:", err);
       setError(
@@ -74,25 +86,35 @@ export function MessageInput({
 
   return (
     <div className="border-t border-border p-3">
-      {pendingImage && (
-        <div className="mb-2 flex w-fit items-center gap-2 rounded-lg border border-border bg-surface-2 p-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={pendingImage.previewUrl}
-            alt="preview"
-            className="h-16 w-16 rounded object-cover"
-          />
-          <button
-            onClick={() => {
-              URL.revokeObjectURL(pendingImage.previewUrl);
-              setPendingImage(null);
-            }}
-            className="rounded p-1 text-muted hover:text-danger cursor-pointer"
+      <AnimatePresence>
+        {pendingImage && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: "auto", marginBottom: 8 }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            transition={{ type: "spring", duration: 0.3, bounce: 0.3 }}
+            className="flex w-fit items-center gap-2 overflow-hidden rounded-lg border border-border bg-surface-2 p-2"
           >
-            <X size={16} />
-          </button>
-        </div>
-      )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={pendingImage.previewUrl}
+              alt="preview"
+              className="h-16 w-16 rounded object-cover"
+            />
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                URL.revokeObjectURL(pendingImage.previewUrl);
+                setPendingImage(null);
+              }}
+              className="rounded p-1 text-muted hover:text-danger cursor-pointer"
+            >
+              <X size={16} />
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="flex items-end gap-2 rounded-lg border border-border bg-surface px-3 py-2">
         <ImageIcon size={18} className="mb-1.5 text-muted" />
         <textarea
@@ -111,14 +133,34 @@ export function MessageInput({
           disabled={!text.trim() && !pendingImage}
           className="!h-8 !w-8 !p-0"
         >
-          <Send size={16} />
+          <span ref={sendIconRef} className="inline-flex">
+            <Send size={16} />
+          </span>
         </Button>
       </div>
-      {error ? (
-        <p className="mt-1 text-[11px] text-danger">{error}</p>
-      ) : (
-        <p className="mt-1 text-[11px] text-muted">You can paste an image with Ctrl+V.</p>
-      )}
+      <AnimatePresence mode="wait">
+        {error ? (
+          <motion.p
+            key="error"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="mt-1 text-[11px] text-danger"
+          >
+            {error}
+          </motion.p>
+        ) : (
+          <motion.p
+            key="hint"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-1 text-[11px] text-muted"
+          >
+            You can paste an image with Ctrl+V.
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

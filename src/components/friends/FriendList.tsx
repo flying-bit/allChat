@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MessageCircle, UserMinus } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/lib/auth-context";
 import { listenFriends, listenStatus, removeFriend } from "@/lib/db";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
@@ -19,7 +20,14 @@ function FriendRow({ uid }: { uid: string }) {
   if (!profile) return null;
 
   return (
-    <div className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-surface-2">
+    <motion.div
+      layout
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0, transition: { duration: 0.15 } }}
+      transition={{ type: "spring", duration: 0.35, bounce: 0.3 }}
+      className="flex items-center justify-between overflow-hidden rounded-lg px-3 py-2 hover:bg-surface-2"
+    >
       <div className="flex items-center gap-3">
         <Avatar name={profile.username} src={profile.avatarUrl} size={36} online={status?.online} />
         <div>
@@ -28,22 +36,26 @@ function FriendRow({ uid }: { uid: string }) {
         </div>
       </div>
       <div className="flex gap-1">
-        <Link
-          href={`/app/dm/${uid}`}
-          className="rounded-md p-2 text-muted hover:bg-surface hover:text-accent cursor-pointer"
-          title="Send a message"
-        >
-          <MessageCircle size={18} />
-        </Link>
-        <button
+        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <Link
+            href={`/app/dm/${uid}`}
+            className="block rounded-md p-2 text-muted hover:bg-surface hover:text-accent cursor-pointer"
+            title="Send a message"
+          >
+            <MessageCircle size={18} />
+          </Link>
+        </motion.div>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
           onClick={() => user && removeFriend(user.uid, uid)}
           className="rounded-md p-2 text-muted hover:bg-surface hover:text-danger cursor-pointer"
           title="Remove friend"
         >
           <UserMinus size={18} />
-        </button>
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -63,9 +75,11 @@ export function FriendList() {
         <p className="text-sm text-muted">No friends yet. Add someone above!</p>
       ) : (
         <div className="flex flex-col gap-1">
-          {friendUids.map((uid) => (
-            <FriendRow key={uid} uid={uid} />
-          ))}
+          <AnimatePresence initial={false}>
+            {friendUids.map((uid) => (
+              <FriendRow key={uid} uid={uid} />
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

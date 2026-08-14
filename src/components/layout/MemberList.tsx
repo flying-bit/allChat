@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { listenServerMemberIds, listenStatus } from "@/lib/db";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
 import { Avatar } from "@/components/ui/Avatar";
@@ -16,10 +17,17 @@ function MemberRow({ uid }: { uid: string }) {
   if (!profile) return null;
 
   return (
-    <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-2">
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: 12 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
+      transition={{ type: "spring", duration: 0.35, bounce: 0.3 }}
+      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-2"
+    >
       <Avatar name={profile.username} src={profile.avatarUrl} size={28} online={status?.online} />
       <span className="truncate text-foreground">{profile.username}</span>
-    </div>
+    </motion.div>
   );
 }
 
@@ -62,17 +70,21 @@ export function MemberList({ serverId }: { serverId: string }) {
             Online — {online.length}
           </div>
         )}
-        {online.map((uid) => (
-          <MemberRow key={uid} uid={uid} />
-        ))}
+        <AnimatePresence initial={false}>
+          {online.map((uid) => (
+            <MemberRow key={uid} uid={uid} />
+          ))}
+        </AnimatePresence>
         {offline.length > 0 && (
           <div className="mb-1 mt-3 px-2 text-xs font-semibold uppercase tracking-wide text-muted">
             Offline — {offline.length}
           </div>
         )}
-        {offline.map((uid) => (
-          <MemberRow key={uid} uid={uid} />
-        ))}
+        <AnimatePresence initial={false}>
+          {offline.map((uid) => (
+            <MemberRow key={uid} uid={uid} />
+          ))}
+        </AnimatePresence>
       </div>
     </>
   );

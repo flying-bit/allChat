@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
+import { animate, stagger } from "animejs";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -16,10 +17,22 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (!loading && user) router.replace("/app");
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!formRef.current) return;
+    animate(formRef.current.querySelectorAll(".stagger-field"), {
+      opacity: [0, 1],
+      translateY: [12, 0],
+      delay: stagger(80),
+      duration: 400,
+      ease: "outQuad",
+    });
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -46,7 +59,7 @@ export default function RegisterPage() {
         <h1 className="mb-1 text-2xl font-bold text-accent">allChat</h1>
         <p className="mb-6 text-sm text-muted">Create a new account</p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
             id="username"
             label="Username"
@@ -54,6 +67,7 @@ export default function RegisterPage() {
             minLength={3}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            className="stagger-field opacity-0"
           />
           <Input
             id="email"
@@ -62,6 +76,7 @@ export default function RegisterPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="stagger-field opacity-0"
           />
           <Input
             id="password"
@@ -71,9 +86,10 @@ export default function RegisterPage() {
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className="stagger-field opacity-0"
           />
           {error && <p className="text-sm text-danger">{error}</p>}
-          <Button type="submit" loading={submitting} className="mt-2 w-full">
+          <Button type="submit" loading={submitting} className="stagger-field opacity-0 mt-2 w-full">
             Sign Up
           </Button>
         </form>
