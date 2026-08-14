@@ -53,8 +53,13 @@ export function MessageInput({
         setPendingImage(null);
       }
       inputRef.current?.focus();
-    } catch {
-      setError("Couldn't send the message. Make sure the Firebase rules are applied.");
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      setError(
+        err instanceof Error && pendingImage
+          ? `Couldn't upload the image: ${err.message}`
+          : "Couldn't send the message. Make sure the Firebase rules are applied."
+      );
     } finally {
       setSending(false);
     }

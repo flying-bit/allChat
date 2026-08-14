@@ -11,6 +11,10 @@ const MAX_BYTES = 8 * 1024 * 1024;
 
 async function isValidFirebaseIdToken(idToken: string) {
   const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  if (!apiKey) {
+    console.error("[/api/upload] Missing NEXT_PUBLIC_FIREBASE_API_KEY env var");
+    return false;
+  }
   const res = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
     {
@@ -19,12 +23,25 @@ async function isValidFirebaseIdToken(idToken: string) {
       body: JSON.stringify({ idToken }),
     }
   );
-  if (!res.ok) return false;
+  if (!res.ok) {
+    console.error("[/api/upload] Firebase token verification failed:", res.status, await res.text());
+    return false;
+  }
   const data = await res.json();
   return Array.isArray(data.users) && data.users.length > 0;
 }
 
 export async function POST(request: NextRequest) {
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    console.error(
+      "[/api/upload] Missing CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET env vars"
+    );
+    return NextResponse.json(
+      { error: "Image uploads aren't configured on the server (missing Cloudinary env vars)." },
+      { status: 500 }
+    );
+  }
+
   const authHeader = request.headers.get("authorization");
   const idToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
   if (!idToken || !(await isValidFirebaseIdToken(idToken))) {
@@ -54,7 +71,9 @@ export async function POST(request: NextRequest) {
       folder: `allchat/${typeof folder === "string" && folder ? folder : "misc"}`,
     });
     return NextResponse.json({ url: result.secure_url });
-  } catch {
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+  } catch (err) {
+    console.error("[/api/upload] Cloudinary upload failed:", err);
+    const message = err instanceof Error ? err.message : "Upload failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
