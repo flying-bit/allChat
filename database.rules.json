@@ -9,10 +9,10 @@
         ".write": "auth != null && auth.uid === $uid",
         ".validate": "newData.hasChildren(['uid', 'username', 'usernameLower', 'email', 'createdAt']) && newData.child('uid').val() === $uid && newData.child('username').isString() && newData.child('username').val().length >= 3 && newData.child('username').val().length <= 32 && newData.child('usernameLower').isString() && newData.child('createdAt').isNumber() && (!data.exists() || newData.child('createdAt').val() === data.child('createdAt').val()) && (!data.exists() || newData.child('email').val() === data.child('email').val())",
         "avatarUrl": {
-          ".validate": "newData.val().beginsWith('https://res.cloudinary.com/')"
+          ".validate": "newData.val().beginsWith('https://res.cloudinary.com/') || newData.val().beginsWith('https://static.klipy.com/')"
         },
         "bannerUrl": {
-          ".validate": "newData.val().beginsWith('https://res.cloudinary.com/')"
+          ".validate": "newData.val().beginsWith('https://res.cloudinary.com/') || newData.val().beginsWith('https://static.klipy.com/')"
         }
       }
     },
@@ -94,7 +94,7 @@
         ".indexOn": "createdAt",
         "$messageId": {
           ".write": "auth != null && ((!data.exists() && newData.exists() && root.child('servers').child(root.child('channelServer').child($channelId).val()).child('members').child(auth.uid).exists()) || (data.exists() && !newData.exists() && data.child('senderId').val() === auth.uid))",
-          ".validate": "!newData.exists() || (newData.child('senderId').val() === auth.uid && newData.child('createdAt').val() === now && (newData.hasChild('text') || newData.hasChild('imageUrl')) && (!newData.hasChild('text') || (newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 4000)) && (!newData.hasChild('imageUrl') || newData.child('imageUrl').val().beginsWith('https://res.cloudinary.com/')) && (!newData.hasChild('replyTo') || (newData.child('replyTo').child('messageId').isString() && newData.child('replyTo').child('senderId').isString() && (!newData.child('replyTo').hasChild('text') || (newData.child('replyTo').child('text').isString() && newData.child('replyTo').child('text').val().length <= 300)))))"
+          ".validate": "!newData.exists() || (newData.child('senderId').val() === auth.uid && newData.child('createdAt').val() === now && (newData.hasChild('text') || newData.hasChild('imageUrl')) && (!newData.hasChild('text') || (newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 4000)) && (!newData.hasChild('imageUrl') || newData.child('imageUrl').val().beginsWith('https://res.cloudinary.com/') || newData.child('imageUrl').val().beginsWith('https://static.klipy.com/')) && (!newData.hasChild('replyTo') || (newData.child('replyTo').child('messageId').isString() && newData.child('replyTo').child('senderId').isString() && (!newData.child('replyTo').hasChild('text') || (newData.child('replyTo').child('text').isString() && newData.child('replyTo').child('text').val().length <= 300)))))"
         }
       }
     },
@@ -157,7 +157,7 @@
         ".indexOn": "createdAt",
         "$messageId": {
           ".write": "auth != null && $dmId.contains(auth.uid) && ((!data.exists() && newData.exists()) || (data.exists() && !newData.exists() && data.child('senderId').val() === auth.uid))",
-          ".validate": "!newData.exists() || (newData.child('senderId').val() === auth.uid && newData.child('createdAt').val() === now && (newData.hasChild('text') || newData.hasChild('imageUrl')) && (!newData.hasChild('text') || (newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 4000)) && (!newData.hasChild('imageUrl') || newData.child('imageUrl').val().beginsWith('https://res.cloudinary.com/')) && (!newData.hasChild('replyTo') || (newData.child('replyTo').child('messageId').isString() && newData.child('replyTo').child('senderId').isString() && (!newData.child('replyTo').hasChild('text') || (newData.child('replyTo').child('text').isString() && newData.child('replyTo').child('text').val().length <= 300)))))"
+          ".validate": "!newData.exists() || (newData.child('senderId').val() === auth.uid && newData.child('createdAt').val() === now && (newData.hasChild('text') || newData.hasChild('imageUrl')) && (!newData.hasChild('text') || (newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 4000)) && (!newData.hasChild('imageUrl') || newData.child('imageUrl').val().beginsWith('https://res.cloudinary.com/') || newData.child('imageUrl').val().beginsWith('https://static.klipy.com/')) && (!newData.hasChild('replyTo') || (newData.child('replyTo').child('messageId').isString() && newData.child('replyTo').child('senderId').isString() && (!newData.child('replyTo').hasChild('text') || (newData.child('replyTo').child('text').isString() && newData.child('replyTo').child('text').val().length <= 300)))))"
         }
       }
     },

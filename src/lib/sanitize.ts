@@ -14,6 +14,7 @@ import {
   MAX_MESSAGE_LENGTH,
   MAX_IMAGE_BYTES,
   CLOUDINARY_URL_PREFIX,
+  KLIPY_CDN_PREFIX,
 } from "./constants";
 
 // Strips characters that have no business in a chat message/name: C0/C1
@@ -86,12 +87,14 @@ export function assertFileSize(file: File): File {
   return file;
 }
 
-// imageUrl only ever comes from our own /api/upload response, but content
-// is otherwise just fields on a plain object anyone with a valid ID token
-// could `set()` directly via the Firebase SDK - so this must be checked
-// server-side too (mirrored in database.rules.json).
+// imageUrl only ever comes from our own /api/upload response or KLIPY's CDN
+// (picked in GifPicker.tsx, linked directly - see the KLIPY_CDN_PREFIX
+// comment in constants.ts), but content is otherwise just fields on a plain
+// object anyone with a valid ID token could `set()` directly via the
+// Firebase SDK - so this must be checked server-side too (mirrored in
+// database.rules.json).
 export function isTrustedImageUrl(url: string): boolean {
-  return url.startsWith(CLOUDINARY_URL_PREFIX);
+  return url.startsWith(CLOUDINARY_URL_PREFIX) || url.startsWith(KLIPY_CDN_PREFIX);
 }
 
 export function assertTrustedImageUrl(url: string): string {

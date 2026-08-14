@@ -12,6 +12,7 @@
     "animejs": "^4.5.0",
     "cloudinary": "^2.10.0",
     "firebase": "^12.17.1",
+    "firebase-admin": "^14.2.0",
     "lucide-react": "^1.31.0",
     "motion": "^13.1.0",
     "nanoid": "^6.0.1",

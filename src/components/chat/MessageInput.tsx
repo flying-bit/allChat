@@ -42,10 +42,10 @@ function ReplyChip({ replyTo, onCancel }: { replyTo: MessageData; onCancel: () =
 
 // A pending attachment is either a locally-picked file (paste or file
 // input - uploaded via `uploadImage` at send time) or a GIF picked from
-// KLIPY (not yet re-hosted on Cloudinary - uploaded via `uploadGif` at send
-// time). Deferring both until send, rather than uploading on pick, matches
-// the existing paste/attach flow and lets the user back out with no
-// leftover upload.
+// KLIPY, linked directly from their CDN with no upload step at all.
+// Deferring the file case until send (rather than uploading on pick)
+// matches the existing paste/attach flow and lets the user back out with
+// no leftover upload.
 type PendingAttachment =
   | { kind: "file"; file: File; previewUrl: string }
   | { kind: "gif"; sourceUrl: string; previewUrl: string };
@@ -53,7 +53,6 @@ type PendingAttachment =
 export function MessageInput({
   onSend,
   uploadImage,
-  uploadGif,
   placeholder,
   onTypingChange,
   replyTo,
@@ -61,7 +60,6 @@ export function MessageInput({
 }: {
   onSend: (content: { text?: string; imageUrl?: string; replyTo?: MessageData }) => Promise<void>;
   uploadImage: (file: File) => Promise<string>;
-  uploadGif: (sourceUrl: string) => Promise<string>;
   placeholder: string;
   onTypingChange?: (isTyping: boolean) => void;
   replyTo?: MessageData | null;
@@ -156,7 +154,7 @@ export function MessageInput({
     try {
       let imageUrl: string | undefined;
       if (pending) {
-        imageUrl = pending.kind === "file" ? await uploadImage(pending.file) : await uploadGif(pending.sourceUrl);
+        imageUrl = pending.kind === "file" ? await uploadImage(pending.file) : pending.sourceUrl;
       }
       await onSend({ text: text.trim() || undefined, imageUrl, replyTo: replyTo ?? undefined });
       setText("");

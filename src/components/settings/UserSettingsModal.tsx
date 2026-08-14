@@ -14,9 +14,9 @@ import { GifPicker } from "@/components/chat/GifPicker";
 import {
   updateUsername,
   updateUserAvatar,
-  updateUserAvatarFromGif,
+  setUserAvatarUrl,
   updateUserBanner,
-  updateUserBannerFromGif,
+  setUserBannerUrl,
 } from "@/lib/db";
 
 // Either a locally-picked file or a KLIPY GIF URL, not yet uploaded -
@@ -94,7 +94,7 @@ export function UserSettingsModal() {
         const upload =
           pendingAvatar.kind === "file"
             ? updateUserAvatar(user.uid, pendingAvatar.file)
-            : updateUserAvatarFromGif(user.uid, pendingAvatar.sourceUrl);
+            : setUserAvatarUrl(user.uid, pendingAvatar.sourceUrl);
         void upload.catch((err) => {
           setSaved(false);
           setError(`Couldn't upload the avatar: ${err instanceof Error ? err.message : String(err)}`);
@@ -104,7 +104,7 @@ export function UserSettingsModal() {
         const upload =
           pendingBanner.kind === "file"
             ? updateUserBanner(user.uid, pendingBanner.file)
-            : updateUserBannerFromGif(user.uid, pendingBanner.sourceUrl);
+            : setUserBannerUrl(user.uid, pendingBanner.sourceUrl);
         void upload.catch((err) => {
           setSaved(false);
           setError(`Couldn't upload the banner: ${err instanceof Error ? err.message : String(err)}`);

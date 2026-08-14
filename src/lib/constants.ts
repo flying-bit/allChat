@@ -28,10 +28,15 @@ export const MAX_MESSAGE_LENGTH = 4000;
 // the actual enforcement point. This constant only drives client-side UX
 // (e.g. disabling the send button early) and must stay <= the rules value.
 export const MIN_MESSAGE_INTERVAL_MS = 400;
-// Only our own /api/upload route ever writes imageUrl, and it always
-// returns a Cloudinary secure_url - used to reject anything else both
-// client-side and in database.rules.json.
+// imageUrl/avatarUrl/bannerUrl only ever come from one of two places:
+// - our own /api/upload route, which always returns a Cloudinary secure_url
+// - a GIF picked in GifPicker.tsx, linked directly from KLIPY's CDN rather
+//   than re-hosted (their asset domain, confirmed against a live response -
+//   see the GifPicker.tsx comment for why re-hosting isn't worth it)
+// Both are enforced both client-side (sanitize.ts) and in
+// database.rules.json - anything else is rejected.
 export const CLOUDINARY_URL_PREFIX = "https://res.cloudinary.com/";
+export const KLIPY_CDN_PREFIX = "https://static.klipy.com/";
 
 // Quoted preview length for replies - the full original text is not kept,
 // only this snapshot (see MessageReplyRef). Mirrored (as 300) in

@@ -11,12 +11,11 @@ interface GifItem {
   fullUrl: string;
 }
 
-// KLIPY's exact response shape isn't pinned down from their docs (the
-// public docs site blocks non-browser fetches, and this couldn't be tested
-// against a live API key) - this walks the plausible shapes defensively
-// instead of assuming one. If GIFs stop showing up after wiring up a real
-// KLIPY_API_KEY, open the browser console: the warning below logs the first
-// raw item so the actual field names can be added to CANDIDATE_PATHS.
+// Confirmed against a live search/trending response: item.file.{sm,md,hd,xs}
+// .{gif,webp,jpg,mp4,webm}.url. The other candidates are kept as a fallback
+// in case KLIPY changes shape on some account tier - if GIFs ever stop
+// showing up, the console.warn below logs the first raw item so a new
+// candidate can be added.
 const CANDIDATE_PATHS: { thumb: string[]; full: string[] }[] = [
   { thumb: ["file", "sm", "gif", "url"], full: ["file", "md", "gif", "url"] },
   { thumb: ["files", "sm", "gif", "url"], full: ["files", "md", "gif", "url"] },
