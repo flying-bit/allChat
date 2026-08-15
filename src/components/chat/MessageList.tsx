@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
-import type { MessageData, ReactionMap } from "@/types";
+import { listenGifFavorites, setGifFavorite, removeGifFavorite } from "@/lib/db";
+import type { GifFavorite, MessageData, ReactionMap } from "@/types";
 
 export function MessageList({
   messages,
@@ -21,6 +22,24 @@ export function MessageList({
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // One shared favorites listener for the whole list, not one per message -
+  // every GIF bubble reads from this same set instead of each subscribing
+  // to `gifFavorites/{uid}` independently.
+  const [gifFavorites, setGifFavorites] = useState<GifFavorite[]>([]);
+  useEffect(() => listenGifFavorites(currentUid, setGifFavorites), [currentUid]);
+  const favoriteGifUrls = useMemo(
+    () => new Set(gifFavorites.map((f) => f.fullUrl)),
+    [gifFavorites]
+  );
+
+  const toggleGifFavorite = useCallback(
+    (url: string) => {
+      if (favoriteGifUrls.has(url)) void removeGifFavorite(currentUid, url);
+      else void setGifFavorite(currentUid, url, url);
+    },
+    [currentUid, favoriteGifUrls]
+  );
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
@@ -73,6 +92,8 @@ export function MessageList({
               currentUid={currentUid}
               reactions={reactions[m.id]}
               grouped={grouped}
+              isGifFavorite={Boolean(m.imageUrl && favoriteGifUrls.has(m.imageUrl))}
+              onToggleGifFavorite={() => m.imageUrl && toggleGifFavorite(m.imageUrl)}
               onReply={onReply}
               onDelete={onDelete}
               onReact={(emoji, active) => onReact(m.id, emoji, active)}

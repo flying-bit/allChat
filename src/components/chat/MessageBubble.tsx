@@ -2,13 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { animate } from "animejs";
-import { Reply, SmilePlus, Trash2 } from "lucide-react";
+import { Reply, SmilePlus, Star, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
 import { useMobileUI } from "@/lib/mobile-ui-context";
 import { clsx } from "@/lib/clsx";
 import { ReactionPicker } from "./ReactionPicker";
 import type { MessageData, ReactionMap } from "@/types";
+
+// Messages don't record whether an image came from the GIF picker vs. a
+// pasted screenshot, so the star (favoriting) only offers itself on images
+// that look like a GIF by URL - same heuristic GifPicker's own fallback
+// extractor uses to recognize a GIF URL in the first place.
+const GIF_URL_RE = /\.(gif|webp)(\?|$)/i;
 
 function ReplyQuote({ replyTo }: { replyTo: NonNullable<MessageData["replyTo"]> }) {
   const profile = useUserProfile(replyTo.senderId);
@@ -66,6 +72,8 @@ export function MessageBubble({
   reactions,
   currentUid,
   grouped,
+  isGifFavorite,
+  onToggleGifFavorite,
   onReply,
   onDelete,
   onReact,
@@ -75,6 +83,8 @@ export function MessageBubble({
   reactions?: ReactionMap;
   currentUid: string;
   grouped?: boolean;
+  isGifFavorite?: boolean;
+  onToggleGifFavorite?: () => void;
   onReply: (message: MessageData) => void;
   onDelete: (messageId: string) => void;
   onReact: (emoji: string, active: boolean) => void;
@@ -150,12 +160,32 @@ export function MessageBubble({
         )}
         {message.text && <p className="whitespace-pre-wrap break-words text-sm">{message.text}</p>}
         {message.imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={message.imageUrl}
-            alt="attachment"
-            className="mt-1 max-h-80 max-w-sm rounded-lg border border-border object-contain"
-          />
+          <div className="relative mt-1 inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={message.imageUrl}
+              alt="attachment"
+              className="max-h-80 max-w-sm rounded-lg border border-border object-contain"
+            />
+            {GIF_URL_RE.test(message.imageUrl) && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleGifFavorite?.();
+                }}
+                aria-label={isGifFavorite ? "Remove GIF from favorites" : "Favorite this GIF"}
+                className={clsx(
+                  "absolute right-1.5 top-1.5 rounded-full bg-black/50 p-1 text-white transition-opacity cursor-pointer",
+                  isGifFavorite || actionsOpen
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100"
+                )}
+              >
+                <Star size={14} className={isGifFavorite ? "fill-yellow-400 text-yellow-400" : ""} />
+              </button>
+            )}
+          </div>
         )}
         {message.videoUrl && (
           <video
