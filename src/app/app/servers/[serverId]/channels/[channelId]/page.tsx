@@ -93,7 +93,7 @@ export default function ChannelPage() {
             title={channel.name}
             right={memberListToggle}
           />
-          <VoiceChannelPanel channelId={channelId} />
+          <VoiceChannelPanel serverId={serverId} channelId={channelId} />
         </motion.div>
         <MemberList serverId={serverId} />
       </div>

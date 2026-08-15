@@ -65,6 +65,7 @@ export function MessageBubble({
   isOwn,
   reactions,
   currentUid,
+  grouped,
   onReply,
   onDelete,
   onReact,
@@ -73,6 +74,7 @@ export function MessageBubble({
   isOwn: boolean;
   reactions?: ReactionMap;
   currentUid: string;
+  grouped?: boolean;
   onReply: (message: MessageData) => void;
   onDelete: (messageId: string) => void;
   onReact: (emoji: string, active: boolean) => void;
@@ -81,6 +83,11 @@ export function MessageBubble({
   const { openProfileCard } = useMobileUI();
   const ref = useRef<HTMLDivElement>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Hover reveals the reply/react/delete toolbar on desktop, but there's no
+  // hover on touch - tapping anywhere on the row (bubbling up from any
+  // child that doesn't stop it) toggles it instead, and toggles it back off
+  // when that same tap lands on one of the toolbar's own buttons.
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -101,28 +108,46 @@ export function MessageBubble({
   return (
     <div
       ref={ref}
-      className="group relative flex gap-3 px-4 py-1.5 hover:bg-surface-2/50"
+      onClick={() => setActionsOpen((v) => !v)}
+      className={clsx(
+        "group relative flex gap-3 px-4 hover:bg-surface-2/50",
+        grouped ? "py-0.5" : "py-1.5 mt-1.5 first:mt-0"
+      )}
     >
-      <button
-        type="button"
-        onClick={() => openProfileCard(message.senderId)}
-        className="shrink-0 cursor-pointer"
-        aria-label={`View ${name}'s profile`}
-      >
-        <Avatar name={name} src={profile?.avatarUrl} size={36} />
-      </button>
+      {grouped ? (
+        <span className="w-9 shrink-0 pt-0.5 text-center text-[10px] text-muted opacity-0 group-hover:opacity-100">
+          {time}
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openProfileCard(message.senderId);
+          }}
+          className="shrink-0 cursor-pointer"
+          aria-label={`View ${name}'s profile`}
+        >
+          <Avatar name={name} src={profile?.avatarUrl} size={36} />
+        </button>
+      )}
       <div className="min-w-0 flex-1">
         {message.replyTo && <ReplyQuote replyTo={message.replyTo} />}
-        <div className="flex items-baseline gap-2">
-          <button
-            type="button"
-            onClick={() => openProfileCard(message.senderId)}
-            className={`cursor-pointer text-sm font-semibold hover:underline ${isOwn ? "text-accent" : ""}`}
-          >
-            {name}
-          </button>
-          <span className="text-[11px] text-muted">{time}</span>
-        </div>
+        {!grouped && (
+          <div className="flex items-baseline gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openProfileCard(message.senderId);
+              }}
+              className={`cursor-pointer text-sm font-semibold hover:underline ${isOwn ? "text-accent" : ""}`}
+            >
+              {name}
+            </button>
+            <span className="text-[11px] text-muted">{time}</span>
+          </div>
+        )}
         {message.text && <p className="whitespace-pre-wrap break-words text-sm">{message.text}</p>}
         {message.imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -155,7 +180,7 @@ export function MessageBubble({
       <div
         className={clsx(
           "absolute right-3 top-1 z-10 items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5 shadow-sm",
-          pickerOpen ? "flex" : "hidden group-hover:flex"
+          pickerOpen || actionsOpen ? "flex" : "hidden group-hover:flex"
         )}
       >
         <div className="relative">

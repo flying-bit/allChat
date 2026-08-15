@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Mic, MicOff, PhoneOff, Volume2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
-import { createPeer, watchAudioLevel, type MediaConnection } from "@/lib/peer";
-import type Peer from "@/lib/peer";
-import { joinVoiceChannel, leaveVoiceChannel, listenVoicePresence } from "@/lib/db";
+import { useVoiceCall } from "@/lib/voice-context";
+import { listenVoicePresence } from "@/lib/db";
 import { MAX_VC_USERS } from "@/lib/constants";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -50,150 +49,39 @@ function ParticipantTile({
   );
 }
 
-export function VoiceChannelPanel({ channelId }: { channelId: string }) {
-  const { user, profile } = useAuth();
-  const [joined, setJoined] = useState(false);
-  const [members, setMembers] = useState<(VoicePresenceData & { uid: string })[]>([]);
-  const [levels, setLevels] = useState<Record<string, number>>({});
-  const [muted, setMuted] = useState(false);
-  const [full, setFull] = useState(false);
+export function VoiceChannelPanel({
+  serverId,
+  channelId,
+}: {
+  serverId: string;
+  channelId: string;
+}) {
+  const { user } = useAuth();
+  const {
+    joinedChannelId,
+    members: callMembers,
+    levels,
+    muted,
+    full,
+    connecting,
+    join,
+    leave,
+    toggleMute,
+  } = useVoiceCall();
+  const joined = joinedChannelId === channelId;
 
-  const peerRef = useRef<Peer | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const connectionsRef = useRef<Map<string, MediaConnection>>(new Map());
-  const cleanupFnsRef = useRef<Map<string, () => void>>(new Map());
-  const audioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
-  const joinedRef = useRef(false);
-
+  // While just viewing (not yet joined) this channel, show a live count of
+  // who's already in it - the shared call context only tracks presence for
+  // whichever channel is actually joined.
+  const [previewMembers, setPreviewMembers] = useState<(VoicePresenceData & { uid: string })[]>(
+    []
+  );
   useEffect(() => {
-    joinedRef.current = joined;
-  }, [joined]);
+    if (joined) return;
+    return listenVoicePresence(channelId, setPreviewMembers);
+  }, [channelId, joined]);
 
-  useEffect(() => listenVoicePresence(channelId, setMembers), [channelId]);
-
-  function registerCall(uid: string, call: MediaConnection) {
-    connectionsRef.current.set(uid, call);
-    call.on("stream", (remoteStream) => {
-      let audioEl = audioElsRef.current.get(uid);
-      if (!audioEl) {
-        audioEl = new Audio();
-        audioEl.autoplay = true;
-        audioElsRef.current.set(uid, audioEl);
-      }
-      audioEl.srcObject = remoteStream;
-      const stopWatch = watchAudioLevel(remoteStream, (level) =>
-        setLevels((prev) => ({ ...prev, [uid]: level }))
-      );
-      cleanupFnsRef.current.set(uid, stopWatch);
-    });
-    call.on("close", () => teardownConnection(uid));
-    call.on("error", () => teardownConnection(uid));
-  }
-
-  function teardownConnection(uid: string) {
-    connectionsRef.current.get(uid)?.close();
-    connectionsRef.current.delete(uid);
-    cleanupFnsRef.current.get(uid)?.();
-    cleanupFnsRef.current.delete(uid);
-    const audioEl = audioElsRef.current.get(uid);
-    if (audioEl) {
-      audioEl.srcObject = null;
-      audioElsRef.current.delete(uid);
-    }
-    setLevels((prev) => {
-      const next = { ...prev };
-      delete next[uid];
-      return next;
-    });
-  }
-
-  async function handleLeave() {
-    for (const uid of Array.from(connectionsRef.current.keys())) teardownConnection(uid);
-    localStreamRef.current?.getTracks().forEach((t) => t.stop());
-    localStreamRef.current = null;
-    peerRef.current?.destroy();
-    peerRef.current = null;
-    if (user) await leaveVoiceChannel(channelId, user.uid);
-    setJoined(false);
-    setMuted(false);
-  }
-
-  useEffect(() => {
-    // Leave the channel if the component unmounts while still connected
-    // (route change to another channel, or navigating away entirely).
-    return () => {
-      if (joinedRef.current) void handleLeave();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelId]);
-
-  useEffect(() => {
-    if (!joined || !user) return;
-    const currentUids = new Set(members.map((m) => m.uid));
-    for (const m of members) {
-      if (m.uid === user.uid) continue;
-      if (connectionsRef.current.has(m.uid)) continue;
-      // Every member's client runs this same effect on every presence
-      // change, so without a tie-breaker both sides of a pair would dial
-      // each other at once (two separate MediaConnections per pair,
-      // fighting over the same `uid` key/audio element). Only the
-      // lower-uid side initiates; the other side answers via the
-      // `peer.on("call", ...)` handler registered in handleJoin.
-      if (user.uid > m.uid) continue;
-      const peer = peerRef.current;
-      const localStream = localStreamRef.current;
-      if (!peer || !localStream) continue;
-      const call = peer.call(m.peerId, localStream);
-      registerCall(m.uid, call);
-    }
-    for (const uid of Array.from(connectionsRef.current.keys())) {
-      if (!currentUids.has(uid)) teardownConnection(uid);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [members, joined]);
-
-  async function handleJoin() {
-    if (!user || !profile) return;
-    setFull(false);
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      alert("Couldn't access the microphone. Check your browser permissions.");
-      return;
-    }
-    let peer: Peer;
-    try {
-      peer = await createPeer();
-    } catch {
-      alert("Couldn't connect to the voice server, try again.");
-      stream.getTracks().forEach((t) => t.stop());
-      return;
-    }
-    const ok = await joinVoiceChannel(channelId, user.uid, peer.id, profile.username);
-    if (!ok) {
-      setFull(true);
-      peer.destroy();
-      stream.getTracks().forEach((t) => t.stop());
-      return;
-    }
-    peer.on("call", (call) => {
-      call.answer(stream);
-      registerCall(call.peer, call);
-    });
-    peerRef.current = peer;
-    localStreamRef.current = stream;
-    setJoined(true);
-  }
-
-  function toggleMute() {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-    const next = !muted;
-    stream.getAudioTracks().forEach((t) => (t.enabled = !next));
-    setMuted(next);
-  }
-
+  const members = joined ? callMembers : previewMembers;
   const otherMembers = members.filter((m) => m.uid !== user?.uid);
   const meMember = members.find((m) => m.uid === user?.uid);
 
@@ -213,7 +101,9 @@ export function VoiceChannelPanel({ channelId }: { channelId: string }) {
             {members.length}/{MAX_VC_USERS} in this channel
           </p>
           {full && <p className="text-sm text-danger">Channel is full (4/4).</p>}
-          <Button onClick={handleJoin}>Join Voice Channel</Button>
+          <Button onClick={() => join(serverId, channelId)} loading={connecting}>
+            Join Voice Channel
+          </Button>
         </motion.div>
       ) : (
         <>
@@ -237,7 +127,7 @@ export function VoiceChannelPanel({ channelId }: { channelId: string }) {
               {muted ? <MicOff size={18} /> : <Mic size={18} />}
               {muted ? "Unmute" : "Mute"}
             </Button>
-            <Button variant="danger" onClick={handleLeave}>
+            <Button variant="danger" onClick={() => void leave()}>
               <PhoneOff size={18} /> Leave
             </Button>
           </div>

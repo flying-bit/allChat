@@ -53,18 +53,32 @@ export function MessageList({
             No messages yet. Send the first one!
           </p>
         )}
-        {messages.map((m) => (
-          <MessageBubble
-            key={m.id}
-            message={m}
-            isOwn={m.senderId === currentUid}
-            currentUid={currentUid}
-            reactions={reactions[m.id]}
-            onReply={onReply}
-            onDelete={onDelete}
-            onReact={(emoji, active) => onReact(m.id, emoji, active)}
-          />
-        ))}
+        {messages.map((m, i) => {
+          const prev = messages[i - 1];
+          // Consecutive messages from the same sender collapse into one
+          // group - only the first keeps the avatar/name/timestamp header,
+          // so a burst of messages doesn't repeat "our name" on every line.
+          // A reply always starts a fresh group since it quotes someone.
+          const grouped = Boolean(
+            prev &&
+              prev.senderId === m.senderId &&
+              !m.replyTo &&
+              m.createdAt - prev.createdAt < 5 * 60 * 1000
+          );
+          return (
+            <MessageBubble
+              key={m.id}
+              message={m}
+              isOwn={m.senderId === currentUid}
+              currentUid={currentUid}
+              reactions={reactions[m.id]}
+              grouped={grouped}
+              onReply={onReply}
+              onDelete={onDelete}
+              onReact={(emoji, active) => onReact(m.id, emoji, active)}
+            />
+          );
+        })}
         <div ref={bottomRef} />
       </div>
     </div>
