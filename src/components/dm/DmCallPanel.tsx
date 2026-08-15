@@ -26,24 +26,28 @@ function CallTile({
   const videoRef = useRef<HTMLVideoElement>(null);
   const hasVideo = Boolean(stream && stream.getVideoTracks().length > 0);
 
+  // Calls start audio-only (camera is a mid-call opt-in), so this tag has
+  // to stay mounted and attached to the stream even with zero video tracks
+  // - it's what's actually playing the remote person's *audio*. Only
+  // hidden (not unmounted) when there's no video to show; a hidden <video>
+  // still plays its audio track fine.
   useEffect(() => {
-    if (videoRef.current) videoRef.current.srcObject = hasVideo ? stream : null;
-  }, [stream, hasVideo]);
+    if (videoRef.current) videoRef.current.srcObject = stream;
+  }, [stream]);
 
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-surface-2">
-      {hasVideo ? (
-        // Local preview is muted (we don't need to hear our own mic through
-        // the tag) and mirrored, matching how every other video call app
-        // shows your own camera back to you.
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted={isLocal}
-          className={`h-full w-full object-cover ${isLocal ? "[transform:scaleX(-1)]" : ""}`}
-        />
-      ) : (
+      {/* Local preview is muted (we don't need to hear our own mic through
+          the tag) and mirrored, matching how every other video call app
+          shows your own camera back to you. */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={isLocal}
+        className={`h-full w-full object-cover ${isLocal ? "[transform:scaleX(-1)]" : ""} ${hasVideo ? "" : "hidden"}`}
+      />
+      {!hasVideo && (
         <div className="flex h-full items-center justify-center">
           <motion.div
             animate={{ boxShadow: `0 0 0 ${4 + level * 10}px rgba(35,165,90,${0.15 + level * 0.35})` }}
