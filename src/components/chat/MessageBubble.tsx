@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { animate } from "animejs";
 import { Reply, SmilePlus, Star, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -15,6 +15,60 @@ import type { MessageData, ReactionMap } from "@/types";
 // that look like a GIF by URL - same heuristic GifPicker's own fallback
 // extractor uses to recognize a GIF URL in the first place.
 const GIF_URL_RE = /\.(gif|webp)(\?|$)/i;
+
+// http(s) only - deliberately excludes javascript:/data: etc, which would
+// otherwise turn "clickable link" into a stored-XSS vector via an <a href>
+// built straight from user text.
+const URL_RE = /(https?:\/\/[^\s<]+|www\.[^\s<]+\.[a-z]{2,}[^\s<]*)/gi;
+
+// Trailing punctuation (sentence-ending periods, a closing paren someone
+// typed around the link, etc.) shouldn't get swallowed into the href.
+// Parens are only trimmed when unbalanced within the URL, so a link that
+// legitimately ends in ")" (e.g. a Wikipedia disambiguation URL) survives.
+function splitTrailingPunctuation(url: string): { url: string; trailing: string } {
+  let trailing = "";
+  while (url.length > 0) {
+    const last = url[url.length - 1];
+    if (last === ")") {
+      const opens = (url.match(/\(/g) ?? []).length;
+      const closes = (url.match(/\)/g) ?? []).length;
+      if (closes <= opens) break;
+    } else if (!".,!?;:'\"".includes(last)) {
+      break;
+    }
+    trailing = last + trailing;
+    url = url.slice(0, -1);
+  }
+  return { url, trailing };
+}
+
+function linkifyText(text: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  for (const match of text.matchAll(URL_RE)) {
+    const index = match.index ?? 0;
+    const { url, trailing } = splitTrailingPunctuation(match[0]);
+    if (!url) continue;
+    if (index > lastIndex) nodes.push(text.slice(lastIndex, index));
+    const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    nodes.push(
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        onClick={(e) => e.stopPropagation()}
+        className="break-all text-blue-600 underline hover:opacity-80 dark:text-blue-400"
+      >
+        {url}
+      </a>
+    );
+    if (trailing) nodes.push(trailing);
+    lastIndex = index + match[0].length;
+  }
+  if (nodes.length === 0) return [text];
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes.map((node, i) => <Fragment key={i}>{node}</Fragment>);
+}
 
 function ReplyQuote({ replyTo }: { replyTo: NonNullable<MessageData["replyTo"]> }) {
   const profile = useUserProfile(replyTo.senderId);
@@ -158,7 +212,9 @@ export function MessageBubble({
             <span className="text-[11px] text-muted">{time}</span>
           </div>
         )}
-        {message.text && <p className="whitespace-pre-wrap break-words text-sm">{message.text}</p>}
+        {message.text && (
+          <p className="whitespace-pre-wrap break-words text-sm">{linkifyText(message.text)}</p>
+        )}
         {message.imageUrl && (
           <div className="relative mt-1 inline-block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
