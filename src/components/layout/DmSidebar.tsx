@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Users } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { listenUserDms } from "@/lib/db";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
@@ -16,15 +16,22 @@ function DmRow({
   otherUid,
   active,
   unread,
+  query,
   onNavigate,
 }: {
   otherUid: string;
   active: boolean;
   unread: boolean;
+  query: string;
   onNavigate: () => void;
 }) {
   const profile = useUserProfile(otherUid);
+  // Each row resolves its own profile (same pattern as everywhere else in
+  // this app - useUserProfile's other callers all do the same), so
+  // filtering by username can't happen up in DmSidebar - it only has uids.
+  // A row just hides itself when it doesn't match instead.
   if (!profile) return null;
+  if (query && !profile.username.toLowerCase().includes(query)) return null;
   return (
     <Link
       href={`/app/dm/${otherUid}`}
@@ -48,6 +55,8 @@ export function DmSidebar() {
   const { channelDrawerOpen, closeChannelDrawer } = useMobileUI();
   const { unreadDmUids, friendRequestCount } = useNotifications();
   const [dms, setDms] = useState<DmThreadMeta[]>([]);
+  const [search, setSearch] = useState("");
+  const query = search.trim().toLowerCase();
 
   useEffect(() => {
     if (!user) return;
@@ -68,6 +77,17 @@ export function DmSidebar() {
       >
         <div className="flex h-14 items-center border-b border-border px-4">
           <h2 className="font-semibold">Direct Messages</h2>
+        </div>
+        <div className="border-b border-border p-2">
+          <div className="flex items-center gap-2 rounded-md border border-border bg-surface-2 px-2 py-1.5">
+            <Search size={14} className="shrink-0 text-muted" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search DMs..."
+              className="w-full bg-transparent text-sm outline-none placeholder:text-muted"
+            />
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           <Link
@@ -94,6 +114,7 @@ export function DmSidebar() {
               otherUid={dm.otherUid}
               active={activeUid === dm.otherUid}
               unread={unreadDmUids.has(dm.otherUid)}
+              query={query}
               onNavigate={closeChannelDrawer}
             />
           ))}
