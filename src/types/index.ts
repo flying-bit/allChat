@@ -91,6 +91,32 @@ export interface VoicePresenceData {
   muted?: boolean;
 }
 
+// 1:1 DM voice/video call, PeerJS-based (see src/lib/dm-call-context.tsx).
+// One node per dmId - a DM can only have one call in flight at a time.
+// "ringing" until the callee answers (calleePeerId is set at that point),
+// then "active" for the rest of the call; the node is deleted outright on
+// hangup/decline/cancel rather than tracking an "ended" status.
+export type DmCallStatus = "ringing" | "active";
+
+export interface DmCallData {
+  callerId: string;
+  calleeId: string;
+  callerPeerId: string;
+  calleePeerId?: string;
+  status: DmCallStatus;
+  startedAt: number;
+}
+
+// Denormalized under the callee's own uid (dmIncomingCall/{calleeId}) so
+// they can listen for an incoming call without knowing every dmId they
+// might be called on ahead of time - same reasoning as userDms.
+export interface DmIncomingCallData {
+  dmId: string;
+  callerId: string;
+  callerPeerId: string;
+  startedAt: number;
+}
+
 // Keyed by a stable hash of fullUrl (see stableKeyForUrl in db.ts) -
 // RTDB keys can't contain the characters a URL is full of.
 export interface GifFavorite {

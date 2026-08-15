@@ -42,6 +42,8 @@ import type {
   MessageData,
   MessageReplyRef,
   DmThreadMeta,
+  DmCallData,
+  DmIncomingCallData,
   FriendRequestData,
   VoicePresenceData,
   StatusInfo,
@@ -808,6 +810,70 @@ export function listenDmReactions(
   const handler = onValue(r, (snap) => {
     cb((snap.val() as Record<string, ReactionMap> | null) ?? {});
   });
+  return () => off(r, "value", handler);
+}
+
+// ---------- DM voice/video calls (PeerJS, 1:1 - see dm-call-context.tsx) ----------
+
+// Writes the shared call record (both participants can read/write it - see
+// database.rules.json) and a denormalized ring signal under the callee's
+// own uid, so their client can find out about the call without already
+// knowing this dmId - same reasoning as userDms. onDisconnect cleanup on
+// both means a call left ringing when the caller's tab dies doesn't ring
+// forever.
+export async function startDmCall(
+  dmId: string,
+  callerId: string,
+  calleeId: string,
+  callerPeerId: string
+) {
+  const callRef = ref(rtdb, `dmCalls/${dmId}`);
+  const incomingRef = ref(rtdb, `dmIncomingCall/${calleeId}`);
+  await update(ref(rtdb), {
+    [`dmCalls/${dmId}`]: {
+      callerId,
+      calleeId,
+      callerPeerId,
+      status: "ringing",
+      startedAt: serverTimestamp(),
+    },
+    [`dmIncomingCall/${calleeId}`]: {
+      dmId,
+      callerId,
+      callerPeerId,
+      startedAt: serverTimestamp(),
+    },
+  });
+  onDisconnect(callRef).remove();
+  onDisconnect(incomingRef).remove();
+}
+
+export async function acceptDmCall(dmId: string, calleeId: string, calleePeerId: string) {
+  const callRef = ref(rtdb, `dmCalls/${dmId}`);
+  await update(callRef, { status: "active", calleePeerId });
+  await remove(ref(rtdb, `dmIncomingCall/${calleeId}`));
+  onDisconnect(callRef).remove();
+}
+
+// Covers decline, cancel-while-ringing, and hangup-while-active alike -
+// whichever side calls this, the other's listenDmCall sees the node
+// disappear and tears its own side down.
+export async function endDmCall(dmId: string, calleeId: string) {
+  await update(ref(rtdb), {
+    [`dmCalls/${dmId}`]: null,
+    [`dmIncomingCall/${calleeId}`]: null,
+  });
+}
+
+export function listenDmCall(dmId: string, cb: (call: DmCallData | null) => void) {
+  const r = ref(rtdb, `dmCalls/${dmId}`);
+  const handler = onValue(r, (snap) => cb(snap.val() as DmCallData | null));
+  return () => off(r, "value", handler);
+}
+
+export function listenIncomingDmCall(uid: string, cb: (call: DmIncomingCallData | null) => void) {
+  const r = ref(rtdb, `dmIncomingCall/${uid}`);
+  const handler = onValue(r, (snap) => cb(snap.val() as DmIncomingCallData | null));
   return () => off(r, "value", handler);
 }
 

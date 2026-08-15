@@ -9,8 +9,11 @@ import { DmSidebar } from "@/components/layout/DmSidebar";
 import { UserSettingsModal } from "@/components/settings/UserSettingsModal";
 import { UserProfileCard } from "@/components/settings/UserProfileCard";
 import { VoiceStatusBar } from "@/components/voice/VoiceStatusBar";
+import { IncomingCallBanner } from "@/components/dm/IncomingCallBanner";
+import { DmCallBar } from "@/components/dm/DmCallBar";
 import { MobileUIProvider } from "@/lib/mobile-ui-context";
 import { VoiceCallProvider } from "@/lib/voice-context";
+import { DmCallProvider } from "@/lib/dm-call-context";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -22,25 +25,32 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {/* VoiceCallProvider lives here, above the channel router, so
             joining a voice channel and then navigating to a text channel
             (or another server) keeps the call connected instead of
-            hanging up - see src/lib/voice-context.tsx. */}
+            hanging up - see src/lib/voice-context.tsx. DmCallProvider is
+            the same idea for 1:1 DM calls (see dm-call-context.tsx) -
+            separate provider because the two have very different
+            connection models (join-a-room mesh vs. ring/accept/decline). */}
         <VoiceCallProvider>
-          {/* h-dvh, not h-screen (100vh): mobile Chrome/Samsung Internet don't
-              subtract their address bar / nav bar from 100vh, so a h-screen
-              shell renders taller than what's actually visible - with
-              overflow-hidden here, that pushed ServerRail's bottom-most items
-              (the profile/settings button) off-screen with no way to reach
-              them. 100dvh tracks the real visible viewport as chrome
-              shows/hides. */}
-          <div className="flex h-dvh w-screen flex-col overflow-hidden bg-background">
-            <div className="flex min-h-0 flex-1">
-              <ServerRail />
-              {serverId ? <ChannelSidebar key={serverId} serverId={serverId} /> : <DmSidebar />}
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
+          <DmCallProvider>
+            {/* h-dvh, not h-screen (100vh): mobile Chrome/Samsung Internet don't
+                subtract their address bar / nav bar from 100vh, so a h-screen
+                shell renders taller than what's actually visible - with
+                overflow-hidden here, that pushed ServerRail's bottom-most items
+                (the profile/settings button) off-screen with no way to reach
+                them. 100dvh tracks the real visible viewport as chrome
+                shows/hides. */}
+            <div className="flex h-dvh w-screen flex-col overflow-hidden bg-background">
+              <div className="flex min-h-0 flex-1">
+                <ServerRail />
+                {serverId ? <ChannelSidebar key={serverId} serverId={serverId} /> : <DmSidebar />}
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
+              </div>
+              <VoiceStatusBar />
+              <DmCallBar />
             </div>
-            <VoiceStatusBar />
-          </div>
-          <UserSettingsModal />
-          <UserProfileCard />
+            <UserSettingsModal />
+            <UserProfileCard />
+            <IncomingCallBanner />
+          </DmCallProvider>
         </VoiceCallProvider>
       </MobileUIProvider>
     </AuthGate>

@@ -8,6 +8,10 @@ export const GENESIS_VOICE_CHANNEL_ID = "sesli-sohbet";
 export const GENESIS_VOICE_CHANNEL_NAME = "Voice Chat";
 
 export const MAX_VC_USERS = 4;
+// How long an outgoing DM call rings before the caller gives up
+// automatically (no server-side timeout exists for this - see
+// src/lib/dm-call-context.tsx).
+export const DM_CALL_RING_TIMEOUT_MS = 45 * 1000;
 // Animated GIFs routinely run well past a typical static image's size, so
 // this is more generous than a plain photo would need - mirrored as
 // MAX_BYTES in src/app/api/upload/route.ts (the actual enforcement point;

@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { Phone } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
+import { DmCallPanel } from "@/components/dm/DmCallPanel";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/lib/auth-context";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
+import { useDmCall } from "@/lib/dm-call-context";
 import {
   clearTyping,
   deleteDmMessage,
@@ -29,6 +32,8 @@ export default function DmPage() {
   const { uid: otherUid } = useParams<{ uid: string }>();
   const { user, profile } = useAuth();
   const otherProfile = useUserProfile(otherUid);
+  const { activeCall, startCall } = useDmCall();
+  const inAnyCall = Boolean(activeCall);
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [reactions, setReactions] = useState<Record<string, ReactionMap>>({});
   const [replyTo, setReplyTo] = useState<MessageData | null>(null);
@@ -72,7 +77,22 @@ export default function DmPage() {
       <TopBar
         icon={<Avatar name={otherProfile.username} src={otherProfile.avatarUrl} size={28} />}
         title={otherProfile.username}
+        right={
+          <button
+            type="button"
+            onClick={() => void startCall(otherUid)}
+            disabled={inAnyCall}
+            title={inAnyCall ? "Already on a call" : "Start a call"}
+            className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            aria-label="Start a call"
+          >
+            <Phone size={18} />
+          </button>
+        }
       />
+      <AnimatePresence initial={false}>
+        {activeCall?.otherUid === otherUid && <DmCallPanel otherUid={otherUid} />}
+      </AnimatePresence>
       <MessageList
         messages={messages}
         currentUid={user.uid}
